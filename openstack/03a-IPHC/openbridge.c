@@ -5,7 +5,7 @@
 #include "iphc.h"
 #include "idmanager.h"
 #include "openqueue.h"
-
+#include "fragment.h"
 //=========================== variables =======================================
 
 //=========================== prototypes ======================================

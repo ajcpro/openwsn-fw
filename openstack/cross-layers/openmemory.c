@@ -30,6 +30,7 @@
 
 #include "opendefs.h"
 #include "openmemory.h"
+#include "openserial.h"
 
 //=========================== variables =======================================
 

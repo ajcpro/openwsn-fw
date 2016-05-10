@@ -38,16 +38,6 @@ uint8_t iphc_retrieveIphcHeader(open_addr_t* temp_addr_16b,
    ipv6_header_iht*     ipv6_header,
    uint8_t              previousLen);
 
-//===== IPv6 hop-by-hop header
-void iphc_prependIPv6HopByHopHeader(
-   OpenQueueEntry_t*    msg,
-   uint8_t              nextheader,
-   rpl_option_ht*       rpl_option
-);
-uint8_t iphc_retrieveIPv6HopByHopHeader(
-   OpenQueueEntry_t*    msg,
-   rpl_option_ht*       rpl_option
-);
 
 //=========================== public ==========================================
 

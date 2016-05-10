@@ -9,6 +9,7 @@
 #include "forwarding.h"
 #include "openbridge.h"
 #include "openserial.h"
+#include "openqueue.h"
 #include "ieee802154_security_driver.h"
 
 //=========================== variables =======================================
