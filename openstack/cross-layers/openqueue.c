@@ -87,7 +87,7 @@ OpenQueueEntry_t* openqueue_getFreePacketBuffer(uint8_t creator) {
 	    return NULL;
 	 }
          openqueue_vars.queue[i].packet=packet;
-         openqueue_vars.queue[i].payload=&(packet[FRAME_DATA_PLOAD - IEEE802154_SECURITY_TAG_LEN]);
+         openqueue_vars.queue[i].payload=&packet[FRAME_DATA_PLOAD - IEEE802154_SECURITY_TAG_LEN];
          openqueue_vars.queue[i].creator=creator;
          openqueue_vars.queue[i].owner=COMPONENT_OPENQUEUE;
          ENABLE_INTERRUPTS(); 

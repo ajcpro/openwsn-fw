@@ -263,8 +263,6 @@ void forwarding_receive(
 	// If this message is a FRAG1, message must be assembled
 	// prior to move it to upper layer.
 	if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
-           //msg->l4_payload = msg->payload;
-           //msg->l4_length  = msg->length;
            switch(msg->l4_protocol) {
            case IANA_TCP: case IANA_UDP: case IANA_ICMPv6:
               fragment_assignAction(buffer, FRAGMENT_ACTION_ASSEMBLE);

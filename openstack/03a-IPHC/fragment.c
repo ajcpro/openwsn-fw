@@ -1027,7 +1027,7 @@ void fragment_doAssemble(FragmentQueueEntry_t* buffer, FragmentAction action) {
    received = buffer->datagram_size - buffer->offset;
 
    // reserve memory for assembled message
-   auxPacket = openmemory_getMemory(received + IEEE802154_SECURITY_TAG_LEN);
+   auxPacket = openmemory_getMemory(received + FRAME_DATA_NDATA + IEEE802154_SECURITY_TAG_LEN);
    if ( auxPacket == NULL ) {
       ENABLE_INTERRUPTS();
       openserial_printError(COMPONENT_FRAGMENT,

@@ -50,6 +50,7 @@ static const uint8_t infoStackName[] = "OpenWSN ";
 #define FRAME_DATA_CRC   2
 #define FRAME_DATA_PLOAD (FRAME_DATA_DATA+FRAME_DATA_CRC)
 #define FRAME_DATA_OTHER (1+1+1) // 1B spi address, 1B length, 1B LQI
+#define FRAME_DATA_NDATA (FRAME_DATA_CRC+FRAME_DATA_OTHER)
 #define FRAME_DATA_TOTAL (FRAME_DATA_PLOAD+FRAME_DATA_OTHER)
 
 // number of possible frames

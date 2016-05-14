@@ -282,7 +282,7 @@ void packetfunctions_reserveHeaderSize(OpenQueueEntry_t* pkt, uint16_t header_le
 
    error = FALSE;
    if ((uint8_t*)(pkt->payload-header_length) < (uint8_t*)(pkt->packet)) {
-      size += FRAME_DATA_CRC + IEEE802154_SECURITY_TAG_LEN;
+      size += FRAME_DATA_CRC + FRAME_DATA_OTHER + IEEE802154_SECURITY_TAG_LEN;
       auxPayload = openmemory_increaseMemory(pkt->payload, size);
       if ( auxPayload != NULL && auxPayload != pkt->payload ) {
          pkt->payload    = auxPayload;
@@ -304,7 +304,7 @@ void packetfunctions_reserveHeaderSize(OpenQueueEntry_t* pkt, uint16_t header_le
 void packetfunctions_tossHeader(OpenQueueEntry_t* pkt, uint16_t header_length) {
    pkt->payload += header_length;
    pkt->length  -= header_length;
-   if ( (uint8_t*)(pkt->payload) > (uint8_t*)(openmemory_lastSegmentAddr(pkt->packet)+126) ) {
+   if ( (uint8_t*)(pkt->payload) > (uint8_t*)(pkt->packet+126) ) {
       openserial_printError(COMPONENT_PACKETFUNCTIONS,ERR_HEADER_TOO_LONG,
                             (errorparameter_t)1,
                             (errorparameter_t)pkt->length);
