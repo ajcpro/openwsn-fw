@@ -285,8 +285,8 @@ void forwarding_receive(
         // change the creator of the packet
         msg->creator = COMPONENT_FORWARDING;
 
-        msg->l4_payload = msg->payload + ipv6_inner_header->header_length + ipv6_outer_header->header_length;
-        msg->l4_length  = msg->length  + ipv6_inner_header->header_length + ipv6_outer_header->header_length;
+//        msg->l4_payload = msg->payload + ipv6_inner_header->header_length + ipv6_outer_header->header_length;
+        msg->l4_length  = msg->length  - ipv6_inner_header->header_length - ipv6_outer_header->header_length;
       
         if (ipv6_outer_header->next_header!=IANA_IPv6ROUTE) {
             flags = rpl_option->flags;

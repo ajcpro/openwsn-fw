@@ -282,7 +282,7 @@ void packetfunctions_reserveHeaderSize(OpenQueueEntry_t* pkt, uint16_t header_le
 
    error = FALSE;
    if ((uint8_t*)(pkt->payload-header_length) < (uint8_t*)(pkt->packet)) {
-      size += FRAME_DATA_CRC + FRAME_DATA_OTHER + IEEE802154_SECURITY_TAG_LEN;
+      size += FRAME_DATA_NDATA + IEEE802154_SECURITY_TAG_LEN;
       auxPayload = openmemory_increaseMemory(pkt->payload, size);
       if ( auxPayload != NULL && auxPayload != pkt->payload ) {
          pkt->payload    = auxPayload;

@@ -8,8 +8,8 @@
  *  - buffer, the memory array
  *  - map, an occupation array
  * The map array contains zero if segment is not assigned or a positive
- * value. This number indicates how many segments are asigned, including
- * itself, to start. Example: next is a 10 segments map; starting addresses
+ * value. This number indicates how many blocks are asigned, including
+ * itself, to start. Example: next is a 10 blocks map; starting addresses
  * correspond to: 0, 130, 260, 390, 520, 650, 780, 910, 1040 and 1170
  * +---+---+---+---+---+---+---+---+---+---+
  * | 0 | 0 | 0 | 0 | 0 | 3 | 1 | 0 | 1 | 1 |
@@ -50,7 +50,7 @@ bool openmemory_segmentAddr(uint8_t* address, uint8_t** first, uint8_t** last);
 void openmemory_init() {
    uint8_t i;
 
-   for ( i = 0; i < FRAME_DATA_SEGMENTS; i++ ) {
+   for ( i = 0; i < FRAME_DATA_BLOCKS; i++ ) {
       openmemory_vars.memory.map[i] = 0;
    }
 //   memset(&openmemory_vars.memory.buffer[0], 0, REAL_MEMORY_SIZE);
@@ -62,10 +62,8 @@ void openmemory_init() {
  *
  * \param size The amount of bytes that are required to allocate.
  *
- * \note  It reserves as many segments as needed for the amount of bytes
- *        in "size" and returns the address of the first segment.
- *        If "size" is a multiple of FRAME_DATA_TOTAL, an excess segment
- *        is acquired.
+ * \note  It reserves as many blocks as needed for the amount of bytes
+ *        in "size" and returns the address of the first block.
  *
  * \returns A pointer to the start of a memory area, if successful.
  * \returns NULL when reservation was unsuccessful.
@@ -78,7 +76,7 @@ uint8_t*  openmemory_getMemory(uint16_t size)
 
    nsegments = (size == 0 ? 0 : size - 1) / FRAME_DATA_TOTAL + 1;
 
-   for ( i = FRAME_DATA_SEGMENTS - 1; i >= 0; ) {
+   for ( i = FRAME_DATA_BLOCKS - 1; i >= 0; ) {
    // search for free space
       if ( openmemory_vars.memory.map[i] == 0 ) {
 	 j = 0;
@@ -136,7 +134,7 @@ owerror_t openmemory_freeMemory(uint8_t* address)
  *                memory area.
  * \param size    The new (total) size in bytes.
  *
- * \note  It tries to get the adjacent previous segments or reserve a new
+ * \note  It tries to get the adjacent previous blocks or reserve a new
  *        area. If a new area is needed it copies contents from "address"
  *        to the end of it.
  *
@@ -198,7 +196,7 @@ uint8_t* openmemory_increaseMemory(uint8_t* address, uint16_t size)
 }
 
 /**
- * \brief Returns the initial address of the first segment of a memory area
+ * \brief Returns the initial address of the first block of a memory area
  *
  * \param address A pointer to an address included in the previsouly-allocated
  *                memory area.
@@ -220,7 +218,7 @@ uint8_t*  openmemory_firstSegmentAddr(uint8_t* address)
 }
 
 /**
- * \brief Returns the initial address of the last segment of a memory area
+ * \brief Returns the initial address of the last block of a memory area
  *
  * \param address A pointer to an address included in the previsouly-allocated
  *                memory area.
@@ -294,10 +292,10 @@ bool openmemory_segmentAddr(uint8_t* address, uint8_t** first, uint8_t** last)
    uint8_t* end;
 
    start = (address - &openmemory_vars.memory.buffer[0]) / FRAME_DATA_TOTAL;
-   for ( i = start; i < FRAME_DATA_SEGMENTS
+   for ( i = start; i < FRAME_DATA_BLOCKS
                  && openmemory_vars.memory.map[i] == 0; i++ )
       ;
-   if ( i >= FRAME_DATA_SEGMENTS ) {
+   if ( i >= FRAME_DATA_BLOCKS ) {
       return FALSE;
    } else if ( start < i ) {
       // It is memory overlapping?

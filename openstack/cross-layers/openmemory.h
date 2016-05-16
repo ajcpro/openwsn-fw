@@ -18,13 +18,13 @@
 
 //=========================== define ==========================================
 
-#define REAL_MEMORY_SIZE FRAME_DATA_SEGMENTS * FRAME_DATA_TOTAL
+#define FRAME_DATA_BLOCKS (TOTAL_DYNAMIC_MEMORY/FRAME_DATA_TOTAL)
 
 //=========================== typedef =========================================
 
 typedef struct {
-   uint8_t  buffer[REAL_MEMORY_SIZE];
-   uint8_t  map[FRAME_DATA_SEGMENTS];
+   uint8_t  buffer[TOTAL_DYNAMIC_MEMORY];
+   uint8_t  map[FRAME_DATA_BLOCKS];
 } OpenMemoryEntry_t;
 
 //=========================== module variables ================================

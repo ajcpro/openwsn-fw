@@ -29,12 +29,12 @@ void fragment_finishSend(FragmentQueueEntry_t* buffer, owerror_t error);
 uint8_t fragment_askL2HeaderSize(OpenQueueEntry_t* msg);
 
 // message management
-void fragment_setSize(OpenQueueEntry_t* msg, uint16_t size);
-void fragment_setTag(OpenQueueEntry_t* msg, uint16_t tag);
-void fragment_setOffset(OpenQueueEntry_t* msg, uint8_t offset);
-uint16_t fragment_getSize(OpenQueueEntry_t* msg);
-uint16_t fragment_getTag(OpenQueueEntry_t* msg);
-uint8_t fragment_getOffset(OpenQueueEntry_t* msg);
+inline void fragment_setSize(OpenQueueEntry_t* msg, uint16_t size);
+inline void fragment_setTag(OpenQueueEntry_t* msg, uint16_t tag);
+inline void fragment_setOffset(OpenQueueEntry_t* msg, uint8_t offset);
+inline uint16_t fragment_getSize(OpenQueueEntry_t* msg);
+inline uint16_t fragment_getTag(OpenQueueEntry_t* msg);
+inline uint8_t fragment_getOffset(OpenQueueEntry_t* msg);
 
 // buffer management
 FragmentQueueEntry_t* fragment_searchBuffer(OpenQueueEntry_t* msg, bool in);
@@ -633,27 +633,27 @@ void fragment_finishSend(FragmentQueueEntry_t* buffer, owerror_t error)
    forwarding_sendDone(pkt, error);
 }
 
-void fragment_setSize(OpenQueueEntry_t* msg, uint16_t size) {
+inline void fragment_setSize(OpenQueueEntry_t* msg, uint16_t size) {
    packetfunctions_htons(size, msg->payload);
 }
 
-void fragment_setTag(OpenQueueEntry_t* msg, uint16_t tag) {
+inline void fragment_setTag(OpenQueueEntry_t* msg, uint16_t tag) {
    packetfunctions_htons(tag, msg->payload);
 }
 
-void fragment_setOffset(OpenQueueEntry_t* msg, uint8_t offset) {
+inline void fragment_setOffset(OpenQueueEntry_t* msg, uint8_t offset) {
    msg->payload[0] = offset;
 }
 
-uint16_t fragment_getSize(OpenQueueEntry_t* msg) {
+inline uint16_t fragment_getSize(OpenQueueEntry_t* msg) {
    return packetfunctions_ntohs(msg->payload);
 }
 
-uint16_t fragment_getTag(OpenQueueEntry_t* msg) {
+inline uint16_t fragment_getTag(OpenQueueEntry_t* msg) {
    return packetfunctions_ntohs((msg->payload) + 2 * sizeof(uint8_t));
 }
 
-uint8_t fragment_getOffset(OpenQueueEntry_t* msg) {
+inline uint8_t fragment_getOffset(OpenQueueEntry_t* msg) {
    return *((msg->payload) + 4 * sizeof(uint8_t));
 }
 
@@ -1013,7 +1013,22 @@ void fragment_doAssemble(FragmentQueueEntry_t* buffer, FragmentAction action) {
    uint8_t  frag1;
    uint16_t received;
    uint8_t* auxPacket;
+   uint8_t  max_fragment;
    INTERRUPT_DECLARATION();
+
+   // RFC 4944 page 11
+   if ( action == FRAGMENT_ACTION_FORWARD ) {
+      max_fragment  = FRAGMENT_DATA_UTIL - FRAGMENT_FRAG1_HL;
+      max_fragment -= fragment_askL2HeaderSize(buffer->msg);
+      max_fragment &= 0xF8;
+      if ( max_fragment < buffer->msg->length - buffer->msg->l4_length ) {
+         openserial_printError(COMPONENT_FRAGMENT, ERR_6LOWPAN_UNSUPPORTED,
+                               (errorparameter_t)1,
+                               (errorparameter_t)0);
+         fragment_doCancel(buffer);
+         return;
+      }
+   }
 
    DISABLE_INTERRUPTS();
    // locate FRAG1 fragment
