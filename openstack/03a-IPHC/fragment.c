@@ -196,7 +196,7 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
    if ( buffer == NULL ) {
       openserial_printError(COMPONENT_FRAGMENT, ERR_NO_FREE_FRAGMENT_BUFFER,
                              (errorparameter_t)2,
-			     (errorparameter_t)0);
+                             (errorparameter_t)0);
       // abort
       openqueue_freePacketBuffer(msg);
       return TRUE;
@@ -209,7 +209,7 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
         || (offset*8+size==buffer->datagram_size))) {
       openserial_printError(COMPONENT_FRAGMENT, ERR_INPUTBUFFER_LENGTH,
                               (errorparameter_t)msg->length,
-			      (errorparameter_t)0);
+                              (errorparameter_t)0);
       // abort
       openqueue_freePacketBuffer(msg);
       if ( buffer->number == 0 ) {
@@ -235,13 +235,13 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
       if ( BUFFER_EQUAL(buffer->other.list[i],tempFO) ) {
          ENABLE_INTERRUPTS();
          // Duplicated fragment
-	 openqueue_freePacketBuffer(msg);
-	 return TRUE;
+         openqueue_freePacketBuffer(msg);
+         return TRUE;
       } else if ( BUFFER_OVERLAP(buffer->other.list[i],tempFO) ) {
          uint16_t    tag;
          uint16_t    size;
          open_addr_t addr;
-	 OpenQueueEntry_t* old_msg;
+         OpenQueueEntry_t* old_msg;
 
          if ( (action = buffer->action) == FRAGMENT_ACTION_OPENBRIDGE ) {
 	    tag  = buffer->datagram_tag;
@@ -249,14 +249,14 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
 	    memcpy(&addr, &(buffer->src), sizeof(open_addr_t));
 	 }
          // Current fragment overlaps previous one
-	 // RFC 4944: If a link fragment that overlaps another fragment
-	 // is received ... buffer SHALL be discarded.
-	 old_msg = fragment_restartBuffer(buffer);
+         // RFC 4944: If a link fragment that overlaps another fragment
+         // is received ... buffer SHALL be discarded.
+         old_msg = fragment_restartBuffer(buffer);
          ENABLE_INTERRUPTS();
          // log error
          openserial_printError(COMPONENT_FRAGMENT, ERR_FRAGMENT_OVERLAPS,
                                 (errorparameter_t)0,
-				(errorparameter_t)0);
+                                (errorparameter_t)0);
 	 if ( action == FRAGMENT_ACTION_OPENBRIDGE ) {
             fragment_cancelToBridge(tag, size, &addr);
 	 }
@@ -384,9 +384,9 @@ void fragment_assignAction(FragmentQueueEntry_t* buffer, FragmentAction action) 
          break;
       case FRAGMENT_ACTION_OPENBRIDGE:
          fragment_doOpenbridge(buffer);
-	 break;
+         break;
       default:
-	 break;
+         break;
    }
 }
 
@@ -677,7 +677,7 @@ FragmentQueueEntry_t* fragment_getFreeBuffer(void) {
 
    openserial_printError(COMPONENT_FRAGMENT,ERR_NO_FREE_FRAGMENT_BUFFER,
                          (errorparameter_t)4,
-			 (errorparameter_t)0);
+                         (errorparameter_t)0);
 
    // All fragment buffers are occupied with no available timers?
    // Try to free possible not functional ones
@@ -686,7 +686,7 @@ FragmentQueueEntry_t* fragment_getFreeBuffer(void) {
       if ( fragmentqueue_vars.queue[i].timerId == TOO_MANY_TIMERS_ERROR ) {
          fragmentqueue_vars.queue[i].timerId = FRAGMENT_NOTIMER-i;
          ENABLE_INTERRUPTS();
-	 fragment_timeout_timer_cb(FRAGMENT_NOTIMER-i);
+         fragment_timeout_timer_cb(FRAGMENT_NOTIMER-i);
          DISABLE_INTERRUPTS();
 	 if ( check == FRAGQLENGTH
            && fragmentqueue_vars.queue[i].in_use == FRAGMENT_NONE ) {
@@ -909,7 +909,7 @@ void fragment_timeout_timer_cb(opentimer_id_t id) {
 	    memcpy(&addr, &(buffer->src), sizeof(open_addr_t));
 	 }
          buffer->action = FRAGMENT_ACTION_TIMEREXPIRED;
-	 ENABLE_INTERRUPTS();
+         ENABLE_INTERRUPTS();
          fragment_freeBuffer(buffer);
          if ( openbridge ) {
             fragment_cancelToBridge(tag, size, &addr);
@@ -992,10 +992,10 @@ void fragment_cancel(FragmentQueueEntry_t* buffer, uint8_t frag) {
    }
    if ( fragment_completeRX(buffer, FRAGMENT_FINISHED) ) {
       if ( buffer->in_use != FRAGMENT_FW ) {
-	 if ( buffer->payload ) {
+         if ( buffer->payload ) {
             openmemory_freeMemory(buffer->payload);
-	 }
-	 msg = buffer->msg;
+         }
+         msg = buffer->msg;
          ENABLE_INTERRUPTS();
          fragment_freeBuffer(buffer);
          openqueue_freePacketBuffer(msg);
@@ -1092,7 +1092,6 @@ void fragment_assemble(FragmentQueueEntry_t* buffer, uint8_t frag) {
                              +(buffer->other.list[frag].fragment_offset<<3),
              buffer->other.list[frag].fragment + FRAGMENT_FRAGN_HL,
              buffer->other.list[frag].fragment_size);
-// buffer->other.list[i].state = FRAGMENT_PROCESSED;
       openmemory_freeMemory(buffer->other.list[frag].fragment);
       buffer->other.list[frag].fragment = NULL;
       buffer->other.list[frag].state = FRAGMENT_FINISHED;

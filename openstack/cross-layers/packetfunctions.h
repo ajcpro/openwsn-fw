@@ -36,7 +36,7 @@ void     packetfunctions_writeAddress(OpenQueueEntry_t* msg, open_addr_t* addres
 
 // reserving/tossing headers and footers
 void     packetfunctions_reserveHeaderSize(OpenQueueEntry_t* pkt, uint16_t header_length);
-void     packetfunctions_tossHeader(OpenQueueEntry_t* pkt, uint16_t header_length);
+void     packetfunctions_tossHeader(OpenQueueEntry_t* pkt, uint8_t header_length);
 void     packetfunctions_reserveFooterSize(OpenQueueEntry_t* pkt, uint8_t header_length);
 void     packetfunctions_tossFooter(OpenQueueEntry_t* pkt, uint8_t header_length);
 

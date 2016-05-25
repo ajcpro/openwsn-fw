@@ -38,6 +38,12 @@ uint8_t iphc_retrieveIphcHeader(open_addr_t* temp_addr_16b,
    ipv6_header_iht*     ipv6_header,
    uint8_t              previousLen);
 
+//===== IPv6 hop-by-hop header
+void iphc_prependIPv6HopByHopHeader(
+   OpenQueueEntry_t*    msg,
+   uint8_t              nextheader,
+   rpl_option_ht*       rpl_option
+);
 
 //=========================== public ==========================================
 
@@ -189,7 +195,6 @@ owerror_t iphc_sendFromForwarding(
     
     // check if we are forwarding a fragmented message
     if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
-//      && (msg->creator == COMPONENT_FORWARDING) ) {
         fragment_assignAction(buffer, FRAGMENT_ACTION_FORWARD);
 	return E_SUCCESS;
     } else

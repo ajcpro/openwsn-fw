@@ -88,8 +88,8 @@ uint8_t*  openmemory_getMemory(uint16_t size)
 	 if ( j == nsegments ) {
             openmemory_vars.memory.map[i] = nsegments;
             openmemory_vars.used += nsegments;
-	    return &openmemory_vars.memory.buffer[(i-j+1) * FRAME_DATA_TOTAL];
-	 } else {
+            return &openmemory_vars.memory.buffer[(i-j+1) * FRAME_DATA_TOTAL];
+         } else {
             i -= j; // advance to next occupied segment
 	 }
       } else { // go to next segment
@@ -187,7 +187,7 @@ uint8_t* openmemory_increaseMemory(uint8_t* address, uint16_t size)
       openmemory_segmentAddr(new, &aux, &newlast);
       new = newlast - nsize;
       memcpy(new, address, nsize+1);
-      openmemory_vars.used += new_segments - old_segments;
+      openmemory_vars.used -= old_segments;
       openmemory_vars.memory.map[end] = 0; // freeing old area
 //      memset(first, 0, (size_t)(last-first)+1);
    }

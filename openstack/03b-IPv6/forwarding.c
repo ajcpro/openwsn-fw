@@ -266,7 +266,7 @@ void forwarding_receive(
            switch(msg->l4_protocol) {
            case IANA_TCP: case IANA_UDP: case IANA_ICMPv6:
               fragment_assignAction(buffer, FRAGMENT_ACTION_ASSEMBLE);
-	      break;
+              break;
            default:
               // log error
               openserial_printError(
@@ -274,19 +274,19 @@ void forwarding_receive(
                   (errorparameter_t)msg->l4_protocol,
                   (errorparameter_t)1
               );
-	      fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
+              fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
            }
-	} else
+	} else {
 	    forwarding_toUpperLayer(msg);
-
+        }
     } else {
         // this packet is not for me: relay
       
         // change the creator of the packet
         msg->creator = COMPONENT_FORWARDING;
 
-//        msg->l4_payload = msg->payload + ipv6_inner_header->header_length + ipv6_outer_header->header_length;
-        msg->l4_length  = msg->length  - ipv6_inner_header->header_length - ipv6_outer_header->header_length;
+        // update l4_length value to determine IPHC size
+        msg->l4_length  = msg->length - ipv6_inner_header->header_length - ipv6_outer_header->header_length;
       
         if (ipv6_outer_header->next_header!=IANA_IPv6ROUTE) {
             flags = rpl_option->flags;
@@ -326,8 +326,8 @@ void forwarding_receive(
                 )==E_FAIL
             ) {
                 if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL )
-		    fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
-		else
+                    fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
+                else
                     openqueue_freePacketBuffer(msg);
             }
         } else {
@@ -357,23 +357,23 @@ owerror_t forwarding_toUpperLayer(OpenQueueEntry_t* msg) {
     switch(msg->l4_protocol) {
         case IANA_TCP:
             opentcp_receive(msg);
-	    break;
+            break;
         case IANA_UDP:
-	    openudp_receive(msg);
-	    break;
+            openudp_receive(msg);
+            break;
         case IANA_ICMPv6:
-	    icmpv6_receive(msg);
-	    break;
+            icmpv6_receive(msg);
+            break;
         default:
-	    // log error
-	    openserial_printError(
+            // log error
+            openserial_printError(
                COMPONENT_FORWARDING,ERR_WRONG_TRAN_PROTOCOL,
-	       (errorparameter_t)msg->l4_protocol,
-	       (errorparameter_t)2
-	    );
-	    // not sure that this is correct as iphc will free it?
+               (errorparameter_t)msg->l4_protocol,
+               (errorparameter_t)2
+            );
+            // not sure that this is correct as iphc will free it?
 	    openqueue_freePacketBuffer(msg);
-	    return E_FAIL;
+            return E_FAIL;
     }
 
     // stop executing here (successful)

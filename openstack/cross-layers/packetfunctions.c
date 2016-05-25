@@ -287,7 +287,7 @@ void packetfunctions_reserveHeaderSize(OpenQueueEntry_t* pkt, uint16_t header_le
       if ( auxPayload != NULL && auxPayload != pkt->payload ) {
          pkt->payload    = auxPayload;
          pkt->l4_payload = auxPayload - pkt->length + pkt->l4_length;
-	 pkt->packet     = openmemory_firstSegmentAddr(auxPayload);
+         pkt->packet     = openmemory_firstSegmentAddr(auxPayload);
       }
       error = auxPayload == NULL;
    }
@@ -301,7 +301,7 @@ void packetfunctions_reserveHeaderSize(OpenQueueEntry_t* pkt, uint16_t header_le
    }
 }
 
-void packetfunctions_tossHeader(OpenQueueEntry_t* pkt, uint16_t header_length) {
+void packetfunctions_tossHeader(OpenQueueEntry_t* pkt, uint8_t header_length) {
    pkt->payload += header_length;
    pkt->length  -= header_length;
    if ( (uint8_t*)(pkt->payload) > (uint8_t*)(pkt->packet+126) ) {
