@@ -46,18 +46,18 @@ static const uint8_t infoStackName[] = "OpenWSN ";
 #define LARGE_PACKET_SIZE LENGTH_IPV6_MTU
 
 // memory sizes
-#define FRAME_DATA_DATA  125
-#define FRAME_DATA_CRC   2
-#define FRAME_DATA_SPIL  2  // 1B spi address, 1B length
-#define FRAME_DATA_LQI   1
-#define FRAME_DATA_PLOAD (FRAME_DATA_SPIL+FRAME_DATA_DATA)
-#define FRAME_DATA_NDATA (FRAME_DATA_SPIL+FRAME_DATA_CRC+FRAME_DATA_LQI)
-#define FRAME_DATA_TOTAL (FRAME_DATA_DATA+FRAME_DATA_NDATA)
+#define FRAME_DATA_DATA   125
+#define FRAME_DATA_CRC    2
+#define FRAME_DATA_SPI_L  2  // 1B spi address, 1B length
+#define FRAME_DATA_LQI    1
+#define FRAME_DATA_PLOAD  (FRAME_DATA_SPI_L+FRAME_DATA_DATA)
+#define FRAME_DATA_NODATA (FRAME_DATA_SPI_L+FRAME_DATA_CRC+FRAME_DATA_LQI)
+#define FRAME_DATA_TOTAL  (FRAME_DATA_DATA+FRAME_DATA_NODATA)
 
 // total memory reserved for messages
-// Every message uses FRAME_DATA_TOTAL (130B). Define space for, at least,
-// 10 messages
-#define TOTAL_DYNAMIC_MEMORY (30*FRAME_DATA_TOTAL)
+// Every message uses FRAME_DATA_TOTAL (130B).
+// 10 messages = 1311B
+#define TOTAL_DYNAMIC_MEMORY 2621
 
 enum {
    E_SUCCESS                           = 0,

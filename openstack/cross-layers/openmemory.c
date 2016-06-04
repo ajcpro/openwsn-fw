@@ -74,9 +74,11 @@ uint8_t*  openmemory_getMemory(uint16_t size)
    uint8_t i;
    uint8_t j;
 
+   // Normalize size and calculate the number of blocks needed
    nsegments = (size == 0 ? 0 : size - 1) / FRAME_DATA_TOTAL + 1;
 
-   for ( i = FRAME_DATA_BLOCKS - 1; i >= 0; ) {
+   // wraps around, so a negative value will be greater
+   for ( i = FRAME_DATA_BLOCKS - 1; i < FRAME_DATA_BLOCKS; ) {
    // search for free space
       if ( openmemory_vars.memory.map[i] == 0 ) {
 	 j = 0;
@@ -91,7 +93,7 @@ uint8_t*  openmemory_getMemory(uint16_t size)
             return &openmemory_vars.memory.buffer[(i-j+1) * FRAME_DATA_TOTAL];
          } else {
             i -= j; // advance to next occupied segment
-	 }
+         }
       } else { // go to next segment
          i -= openmemory_vars.memory.map[i];
       }

@@ -18,12 +18,26 @@
 
 //=========================== define ==========================================
 
-#define FRAME_DATA_BLOCKS (TOTAL_DYNAMIC_MEMORY/FRAME_DATA_TOTAL)
+/*
+  TOTAL_DYNAMIC_MEMORY is the max amount of memory to use and it is part of
+  .DATA, not .HEAP. Then, if:
+  TOTAL_BLOCKS = TOTAL_DYNAMIC_MEMORY/FRAME_DATA_TOTAL => Z = X/Y
+  TOTAL_MEMORY = TOTAL_BLOCKS * FRAME_DATA_TOTAL
+  I want that:
+  TOTAL_MEMORY_USED = TOTAL_MEMORY + TOTAL_BLOCKS + 1 <= TOTAL_DYNAMIC_MEMORY
+  i.e, memory for data vector plus memory for map vector plus the counter
+  must be less or equal than TOTAL_DYNAMIC_MEMORY:
+       
+  (X/Y)*Y + X/Y + 1 <= X
+  (X/Y)*(Y+1) + 1 <= X   <=>  Z*(Y+1) <= X-1   <=>  z = (X-1)/(Y+1)
+*/
+#define FRAME_DATA_BLOCKS ((TOTAL_DYNAMIC_MEMORY-1)/(FRAME_DATA_TOTAL+1))
+#define TOTAL_MEMORY_SIZE (FRAME_DATA_BLOCKS*FRAME_DATA_TOTAL)
 
 //=========================== typedef =========================================
 
 typedef struct {
-   uint8_t  buffer[TOTAL_DYNAMIC_MEMORY];
+   uint8_t  buffer[TOTAL_MEMORY_SIZE];
    uint8_t  map[FRAME_DATA_BLOCKS];
 } OpenMemoryEntry_t;
 

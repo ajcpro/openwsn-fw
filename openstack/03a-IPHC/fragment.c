@@ -756,18 +756,21 @@ FragmentQueueEntry_t* fragment_searchBuffer(OpenQueueEntry_t* msg, bool in) {
       if ( in ) {
          buffer->datagram_size = size;
          buffer->datagram_tag  = tag;
-      }
-      memcpy(&(buffer->dst), dst, sizeof(open_addr_t));
-      memcpy(&(buffer->src), src, sizeof(open_addr_t));
-      buffer->in_use = in ? FRAGMENT_RX : FRAGMENT_TX;
-      if ( in ) {
          size = size / MIN_PAYLOAD + 1;
          buffer->other.list = (FragmentOffsetEntry_t*)openmemory_getMemory(size * sizeof(FragmentOffsetEntry_t));
+         if ( buffer->other.list == NULL ) {
+            buffer->in_use = FRAGMENT_NONE;
+            ENABLE_INTERRUPTS();
+            return NULL;
+         }
          for ( i = 0; i < size; i++ ) {
             buffer->other.list[i].state = FRAGMENT_NONE;
             buffer->other.list[i].fragment = NULL;
          }
       }
+      memcpy(&(buffer->dst), dst, sizeof(open_addr_t));
+      memcpy(&(buffer->src), src, sizeof(open_addr_t));
+      buffer->in_use = in ? FRAGMENT_RX : FRAGMENT_TX;
       ENABLE_INTERRUPTS();
       return buffer;
    }
@@ -1042,7 +1045,7 @@ void fragment_doAssemble(FragmentQueueEntry_t* buffer, FragmentAction action) {
    received = buffer->datagram_size - buffer->offset;
 
    // reserve memory for assembled message
-   auxPacket = openmemory_getMemory(received + FRAME_DATA_NDATA + IEEE802154_SECURITY_TAG_LEN);
+   auxPacket = openmemory_getMemory(received + FRAME_DATA_NODATA + IEEE802154_SECURITY_TAG_LEN);
    if ( auxPacket == NULL ) {
       ENABLE_INTERRUPTS();
       openserial_printError(COMPONENT_FRAGMENT,
@@ -1202,6 +1205,7 @@ void fragment_openbridge(FragmentQueueEntry_t* buffer, uint8_t frag) {
    }
 }
 
+/*
 uint8_t askAddressSize(open_addr_t* addr) {
    switch (addr->type) {
       case ADDR_16B: case ADDR_PANID:
@@ -1214,24 +1218,31 @@ uint8_t askAddressSize(open_addr_t* addr) {
      return 0;
    }
 }
-
+*/
 
 // Determines L2 header size
 uint8_t fragment_askL2HeaderSize(OpenQueueEntry_t* msg) {
    uint8_t hsize;
 
    // Begin
-   hsize = askAddressSize(idmanager_getMyID(ADDR_64B));
+//   hsize = askAddressSize(idmanager_getMyID(ADDR_64B));
+   hsize = 8;
    if (packetfunctions_isBroadcastMulticast(&(msg->l2_nextORpreviousHop)))
       hsize += 2; //broadcast address is always 16-bit
    else
       switch (msg->l2_nextORpreviousHop.type) {
-         case ADDR_16B: case ADDR_64B:
-            hsize += askAddressSize(&(msg->l2_nextORpreviousHop));
-	    break;
+//         case ADDR_16B: case ADDR_64B:
+//            hsize += askAddressSize(&(msg->l2_nextORpreviousHop));
+//	    break;
+            case ADDR_16B:
+               hsize += 2;
+               break;
+            case ADDR_64B:
+               hsize += 8;
       }
 
-   hsize += askAddressSize(idmanager_getMyID(ADDR_PANID));
+//   hsize += askAddressSize(idmanager_getMyID(ADDR_PANID));
+   hsize += 2;
    hsize += 1; //dsn
    hsize += 2; //fcf
 
