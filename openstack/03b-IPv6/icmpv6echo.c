@@ -109,11 +109,11 @@ void icmpv6echo_receive(OpenQueueEntry_t* msg) {
             return;
          }*/
 
-	 // reuse msg for reply: do not duplicate memory if a big one
+	 // reuse msg for reply: do not duplicate memory, it may be a big one
 	 reply = msg;
          // take ownership over reply
          reply->creator = COMPONENT_ICMPv6ECHO;
-         reply->owner   = COMPONENT_ICMPv6ECHO;
+         // reply->owner   = COMPONENT_ICMPv6ECHO;
          // copy payload from msg to (end of) reply
 /*         packetfunctions_reserveHeaderSize(reply,msg->length);
          memcpy(reply->payload,msg->payload,msg->length);*/

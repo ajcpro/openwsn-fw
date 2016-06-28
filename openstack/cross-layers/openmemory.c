@@ -74,8 +74,19 @@ uint8_t*  openmemory_getMemory(uint16_t size)
    uint8_t i;
    uint8_t j;
 
-   // Normalize size and calculate the number of blocks needed
+   // Check for available memory
+   if ( openmemory_vars.used == FRAME_DATA_BLOCKS ) {
+      openserial_printCritical(COMPONENT_OPENMEMORY,
+                            ERR_MEMORY_NO_AVAILABLE,
+                            (errorparameter_t)0,
+                            (errorparameter_t)0);
+   }
+
+   // Normalize size and calculate the number of needed blocks
    nsegments = (size == 0 ? 0 : size - 1) / FRAME_DATA_TOTAL + 1;
+   if ( openmemory_vars.used + nsegments > FRAME_DATA_BLOCKS ) {
+      return NULL; // do not search for non available segment
+   }
 
    // wraps around, so a negative value will be greater
    for ( i = FRAME_DATA_BLOCKS - 1; i < FRAME_DATA_BLOCKS; ) {
@@ -164,6 +175,9 @@ uint8_t* openmemory_increaseMemory(uint8_t* address, uint16_t size)
 
    if ( old_segments == new_segments ) {
       return address;
+   }
+   if ( openmemory_vars.used - old_segments + new_segments > FRAME_DATA_BLOCKS ) {
+      return NULL; // do not search for non available segment
    }
 
    // Try to allocate it in previous segments

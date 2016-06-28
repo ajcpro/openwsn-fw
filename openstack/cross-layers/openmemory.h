@@ -31,7 +31,17 @@
   (X/Y)*Y + X/Y + 1 <= X
   (X/Y)*(Y+1) + 1 <= X   <=>  Z*(Y+1) <= X-1   <=>  z = (X-1)/(Y+1)
 */
+#ifdef ARCH_TOTAL_OPENMEMORY
+#if      ARCH_TOTAL_OPENMEMORY < TOTAL_DYNAMIC_MEMORY
+#define  TOTAL_DYNAMIC_MEMORY ARCH_TOTAL_OPENMEMORY
+#endif
+#endif
+
 #define FRAME_DATA_BLOCKS ((TOTAL_DYNAMIC_MEMORY-1)/(FRAME_DATA_TOTAL+1))
+#if FRAME_DATA_BLOCKS > 254
+#define FRAME_DATA_BLOCKS 254
+#endif
+
 #define TOTAL_MEMORY_SIZE (FRAME_DATA_BLOCKS*FRAME_DATA_TOTAL)
 
 //=========================== typedef =========================================
