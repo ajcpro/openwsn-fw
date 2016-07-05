@@ -18,6 +18,11 @@
 
 //=========================== define ==========================================
 
+#ifdef ARCH_TOTAL_OPENMEMORY
+#undef   TOTAL_DYNAMIC_MEMORY
+#define  TOTAL_DYNAMIC_MEMORY ARCH_TOTAL_OPENMEMORY
+#endif
+
 /*
   TOTAL_DYNAMIC_MEMORY is the max amount of memory to use and it is part of
   .DATA, not .HEAP. Then, if:
@@ -31,14 +36,9 @@
   (X/Y)*Y + X/Y + 1 <= X
   (X/Y)*(Y+1) + 1 <= X   <=>  Z*(Y+1) <= X-1   <=>  z = (X-1)/(Y+1)
 */
-#ifdef ARCH_TOTAL_OPENMEMORY
-#if      ARCH_TOTAL_OPENMEMORY < TOTAL_DYNAMIC_MEMORY
-#define  TOTAL_DYNAMIC_MEMORY ARCH_TOTAL_OPENMEMORY
-#endif
-#endif
-
 #define FRAME_DATA_BLOCKS ((TOTAL_DYNAMIC_MEMORY-1)/(FRAME_DATA_TOTAL+1))
 #if FRAME_DATA_BLOCKS > 254
+#undef  FRAME_DATA_BLOCKS
 #define FRAME_DATA_BLOCKS 254
 #endif
 

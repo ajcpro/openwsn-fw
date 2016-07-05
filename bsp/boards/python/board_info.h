@@ -74,6 +74,9 @@
 
 #define SYNC_ACCURACY                       1 // when using openmoteSTM, change to 2
 
+//===== openmemory
+#define ARCH_TOTAL_OPENMEMORY 6551 // 50 frames
+
 //=========================== typedef  ========================================
 
 //=========================== variables =======================================
