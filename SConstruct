@@ -81,6 +81,8 @@ project:
     l2_security   Use hop-by-hop encryption and authentication.
     goldenImage   sniffer, root or none(default)
     ide           qtcreator
+    fragmentation  Compile with fragmentation support if available on board
+                   1 (on), 0 (off)
 
     Common variables:
     verbose        Print each complete compile/link command.
@@ -137,7 +139,8 @@ command_line_options = {
     'cryptoengine':     ['', 'dummy_crypto_engine', 'firmware_crypto_engine', 'board_crypto_engine'],
     'l2_security':      ['0','1'],
     'goldenImage':      ['none','root','sniffer'],
-    'ide':              ['none','qtcreator']
+    'ide':              ['none','qtcreator'],
+    'fragmentation':    ['1','0'],
 }
 
 def validate_option(key, value, env):
@@ -303,6 +306,13 @@ command_line_vars.AddVariables(
         command_line_options['ide'][0],                   # default
         validate_option,                                   # validator
         None,                                              # converter
+    ),
+    (
+        'fragmentation',                                   # key
+        '',                                                # help
+        command_line_options['fragmentation'][0],          # default
+        validate_option,                                   # validator
+        int,                                               # converter
     ),
 )
 

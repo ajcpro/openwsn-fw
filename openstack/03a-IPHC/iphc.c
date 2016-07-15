@@ -8,7 +8,9 @@
 #include "neighbors.h"
 #include "openbridge.h"
 #include "icmpv6rpl.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
 #include "fragment.h"
+#endif
 
 //=========================== variables =======================================
 
@@ -61,13 +63,15 @@ owerror_t iphc_sendFromForwarding(
     uint8_t           rh3_length,
     uint8_t           fw_SendOrfw_Rcv
     ) {
-    FragmentQueueEntry_t* buffer;
     open_addr_t  temp_dest_prefix;
     open_addr_t  temp_dest_mac64b; 
     open_addr_t  temp_src_prefix;
     open_addr_t  temp_src_mac64b;
     open_addr_t  temp_dagroot_ip128b;
     uint8_t      sam;
+#ifndef DO_NOT_USE_FRAGMENTATION
+    FragmentQueueEntry_t* buffer;
+#endif
     // take ownership over the packet
     msg->owner = COMPONENT_IPHC;
    
@@ -193,12 +197,17 @@ owerror_t iphc_sendFromForwarding(
         *((uint8_t*)(msg->payload)) = PAGE_DISPATCH_NO_1;
     }
     
+#ifndef DO_NOT_USE_FRAGMENTATION
     // check if we are forwarding a fragmented message
     if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
         fragment_assignAction(buffer, FRAGMENT_ACTION_FORWARD);
-	return E_SUCCESS;
-    } else
+        return E_SUCCESS;
+    } else {
         return fragment_prependHeader(msg);
+    }
+#else
+    return sixtop_send(msg);
+#endif
 }
 
 //send from bridge: 6LoWPAN header already added by OpenLBR, send as is
@@ -216,9 +225,12 @@ owerror_t iphc_sendFromBridge(OpenQueueEntry_t *msg) {
 
 void iphc_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
    msg->owner = COMPONENT_IPHC;
+#ifndef DO_NOT_USE_FRAGMENTATION
    if (msg->creator==COMPONENT_FRAGMENT) {
       fragment_sendDone(msg,error);
-   } else if (msg->creator==COMPONENT_OPENBRIDGE) {
+   } else
+#endif
+   if (msg->creator==COMPONENT_OPENBRIDGE) {
       openbridge_sendDone(msg,error);
    } else {
       forwarding_sendDone(msg,error);
@@ -232,10 +244,12 @@ void iphc_receive(OpenQueueEntry_t* msg) {
     rpl_option_ht        rpl_option;
     uint8_t              rpi_length;
    
+#ifndef DO_NOT_USE_FRAGMENTATION
     // Do not continue if msg is a FRAGN type
     if ( fragment_retrieveHeader(msg) ) {
         return;
     }
+#endif
 
     msg->owner      = COMPONENT_IPHC;
    
@@ -277,13 +291,14 @@ void iphc_receive(OpenQueueEntry_t* msg) {
             &rpl_option
         );
    } else {
+#ifndef DO_NOT_USE_FRAGMENTATION
       FragmentQueueEntry_t* buffer;
 
       if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
          fragment_assignAction(buffer, FRAGMENT_ACTION_OPENBRIDGE);
-      } else {
+      } else
+#endif
          openbridge_receive(msg, TRUE);           //out to the OpenVisualizer
-      }
    }
 }
 

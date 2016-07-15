@@ -70,6 +70,9 @@ static PyObject* OpenMote_getState(OpenMote* self) {
    PyObject* ieee154e_dbg;
    PyObject* idmanager_vars;
    PyObject* openqueue_vars;
+#ifndef DO_NOT_USE_FRAGMENTATION  
+   PyObject* openmemory_vars;
+#endif
    PyObject* opentimers_vars;
    PyObject* random_vars;
    PyObject* openserial_vars;
@@ -180,6 +183,13 @@ static PyObject* OpenMote_getState(OpenMote* self) {
    opentimers_vars = PyDict_New();
    // TODO
    PyDict_SetItemString(returnVal, "opentimers_vars", opentimers_vars);
+
+#ifndef DO_NOT_USE_FRAGMENTATION  
+   // openmemory_vars
+   openmemory_vars = PyDict_New();
+   // TODO
+   PyDict_SetItemString(returnVal, "openmemory_vars", openmemory_vars);
+#endif
    
    // random_vars
    random_vars = PyDict_New();

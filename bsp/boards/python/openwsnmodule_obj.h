@@ -28,9 +28,11 @@
 #include "opentcp_obj.h"
 #include "idmanager_obj.h"
 #include "openqueue_obj.h"
-#include "openmemory_obj.h"
 #include "openrandom_obj.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
+#include "openmemory_obj.h"
 #include "fragment_obj.h"
+#endif
 // applications
 #include "c6t_obj.h"
 #include "cexample_obj.h"
@@ -221,7 +223,9 @@ struct OpenMote {
    opencoap_vars_t      opencoap_vars;
    tcp_vars_t           tcp_vars;
    // l3
+#ifndef DO_NOT_USE_FRAGMENTATION
    fragmentqueue_vars_t fragmentqueue_vars;
+#endif
    // l2b
    sixtop_vars_t        sixtop_vars;
    neighbors_vars_t     neighbors_vars;
@@ -236,7 +240,9 @@ struct OpenMote {
    // cross-layer
    idmanager_vars_t     idmanager_vars;
    openqueue_vars_t     openqueue_vars;
+#ifndef DO_NOT_USE_FRAGMENTATION
    openmemory_vars_t    openmemory_vars;
+#endif
    // drivers
    opentimers_vars_t    opentimers_vars;
    random_vars_t        random_vars;

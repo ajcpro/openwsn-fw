@@ -5,7 +5,9 @@
 #include "iphc.h"
 #include "idmanager.h"
 #include "openqueue.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
 #include "fragment.h"
+#endif
 //=========================== variables =======================================
 
 //=========================== prototypes ======================================
@@ -25,8 +27,12 @@ void openbridge_triggerData() {
    //this is a temporal workaround as we are never supposed to get chunks of data
    //longer than input buffer size.. I assume that HDLC will solve that.
    // MAC header is 13B + 8 next hop so we cannot accept packets that are longer than 118B
+#ifndef DO_NOT_USE_FRAGMENTATION
+   if (numDataBytes>(136 - 10/*21*/) || numDataBytes<8){
+#else
    // large packets are now fragmented
-   if (/*numDataBytes>(136 - 10 *21* ) ||*/ numDataBytes<8){
+   if (numDataBytes<8){
+#endif
    //to prevent too short or too long serial frames to kill the stack  
        openserial_printError(COMPONENT_OPENBRIDGE,ERR_INPUTBUFFER_LENGTH,
                    (errorparameter_t)numDataBytes,
@@ -54,7 +60,9 @@ void openbridge_triggerData() {
       //payload
       packetfunctions_reserveHeaderSize(pkt,numDataBytes-8);
       memcpy(pkt->payload,&(input_buffer[8]),numDataBytes-8);
+#ifndef DO_NOT_USE_FRAGMENTATION
       pkt->ob_payload = pkt->payload;
+#endif
       
       //this is to catch the too short packet. remove it after fw-103 is solved.
       if (numDataBytes<16){
@@ -64,7 +72,9 @@ void openbridge_triggerData() {
       }       
       //send
       if ((iphc_sendFromBridge(pkt))==E_FAIL) {
+#ifndef DO_NOT_USE_FRAGMENTATION
          fragment_checkOpenBridge(pkt, E_FAIL);
+#endif
          openqueue_freePacketBuffer(pkt);
       }
    }
@@ -77,7 +87,9 @@ void openbridge_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
                             (errorparameter_t)0,
                             (errorparameter_t)0);
    }
+#ifndef DO_NOT_USE_FRAGMENTATION
    fragment_checkOpenBridge(msg, error);
+#endif
    openqueue_freePacketBuffer(msg);
 }
 

@@ -12,7 +12,9 @@
 #include "opentcp.h"
 #include "debugpins.h"
 #include "scheduler.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
 #include "fragment.h"
+#endif
 
 //=========================== variables =======================================
 
@@ -231,7 +233,9 @@ void forwarding_receive(
     ) {
     uint8_t flags;
     uint16_t senderRank;
+#ifndef DO_NOT_USE_FRAGMENTATION
     FragmentQueueEntry_t* buffer;
+#endif
    
     // take ownership
     msg->owner                     = COMPONENT_FORWARDING;
@@ -260,9 +264,12 @@ void forwarding_receive(
         // this packet is for me, no source routing header // toss iphc inner header
         packetfunctions_tossHeader(msg,ipv6_inner_header->header_length);
 
-	// If this message is a FRAG1, message must be assembled
-	// prior to move it to upper layer.
-	if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
+#ifdef DO_NOT_USE_FRAGMENTATION
+        forwarding_toUpperLayer(msg);
+#else
+        // If this message is a FRAG1, message must be assembled
+        // prior to move it to upper layer.
+        if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
            switch(msg->l4_protocol) {
            case IANA_TCP: case IANA_UDP: case IANA_ICMPv6:
               fragment_assignAction(buffer, FRAGMENT_ACTION_ASSEMBLE);
@@ -276,17 +283,20 @@ void forwarding_receive(
               );
               fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
            }
-	} else {
-	    forwarding_toUpperLayer(msg);
+        } else {
+           forwarding_toUpperLayer(msg);
         }
+#endif
     } else {
         // this packet is not for me: relay
       
         // change the creator of the packet
         msg->creator = COMPONENT_FORWARDING;
 
+#ifdef DO_NOT_USE_FRAGMENTATION
         // update l4_length value to determine IPHC size
         msg->l4_length  = msg->length - ipv6_inner_header->header_length - ipv6_outer_header->header_length;
+#endif
       
         if (ipv6_outer_header->next_header!=IANA_IPv6ROUTE) {
             flags = rpl_option->flags;
@@ -325,9 +335,11 @@ void forwarding_receive(
                     PCKTFORWARD 
                 )==E_FAIL
             ) {
-                if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL )
+#ifndef DO_NOT_USE_FRAGMENTATION
+                if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
                     fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
-                else
+                } else
+#endif
                     openqueue_freePacketBuffer(msg);
             }
         } else {

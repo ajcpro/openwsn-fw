@@ -223,7 +223,9 @@ typedef struct {
    PORT_RADIOTIMER_WIDTH     deSyncTimeout;           // how many slots left before looses sync
    bool                      isSync;                  // TRUE iff mote is synchronized to network
    OpenQueueEntry_t          localCopyForTransmission;// copy of the frame used for current TX
+#ifndef DO_NOT_USE_FRAGMENTATION
    uint8_t                   localPacket[FRAME_DATA_TOTAL];
+#endif
    PORT_RADIOTIMER_WIDTH     numOfSleepSlots;         // number of slots to sleep between active slots
    // as shown on the chronogram
    ieee154e_state_t          state;                   // state of the FSM

@@ -188,6 +188,7 @@ owerror_t openserial_printPacket(uint8_t* buffer, uint8_t length, uint8_t channe
    return E_SUCCESS;
 }
 
+#ifndef DO_NOT_USE_FRAGMENTATION
 owerror_t openserial_printBridge(uint8_t* buffer, uint8_t length) {
    uint8_t  i;
    INTERRUPT_DECLARATION();
@@ -206,6 +207,7 @@ owerror_t openserial_printBridge(uint8_t* buffer, uint8_t length) {
    
    return E_SUCCESS;
 }
+#endif
 
 owerror_t openserial_printInfo(uint8_t calling_component, uint8_t error_code,
                               errorparameter_t arg1,

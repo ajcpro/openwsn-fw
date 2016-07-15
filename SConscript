@@ -369,6 +369,10 @@ if env['ide']=='qtcreator':
 else:
     print env['ide']
     
+if env['board'] in ['telosb']:
+    env.fragmentation = 0
+if env['fragmentation']==0:
+    env.Append(CPPDEFINES    = 'DO_NOT_USE_FRAGMENTATION')
     
 #============================ upload over JTAG ================================
 

@@ -29,12 +29,12 @@ void fragment_finishSend(FragmentQueueEntry_t* buffer, owerror_t error);
 uint8_t fragment_askL2HeaderSize(OpenQueueEntry_t* msg);
 
 // message management
-inline void fragment_setSize(OpenQueueEntry_t* msg, uint16_t size);
-inline void fragment_setTag(OpenQueueEntry_t* msg, uint16_t tag);
-inline void fragment_setOffset(OpenQueueEntry_t* msg, uint8_t offset);
-inline uint16_t fragment_getSize(OpenQueueEntry_t* msg);
-inline uint16_t fragment_getTag(OpenQueueEntry_t* msg);
-inline uint8_t fragment_getOffset(OpenQueueEntry_t* msg);
+#define SET_SIZE(msg, size) packetfunctions_htons(size, (msg)->payload)
+#define SET_TAG(msg, tag)   SET_SIZE(msg, tag)
+#define SET_OFFSET(msg, offset) (msg)->payload[0] = offset
+#define GET_SIZE(msg) packetfunctions_ntohs((msg)->payload)
+#define GET_TAG(msg)  packetfunctions_ntohs(((msg)->payload) + 2 * sizeof(uint8_t))
+#define GET_OFFSET(msg) (*(((msg)->payload) + 4 * sizeof(uint8_t)))
 
 // buffer management
 FragmentQueueEntry_t* fragment_searchBuffer(OpenQueueEntry_t* msg, bool in);
@@ -203,7 +203,7 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
    }
 
    size   = msg->length - (fragn ? FRAGMENT_FRAGN_HL : FRAGMENT_FRAG1_HL);
-   offset = fragn ? fragment_getOffset(msg) : 0;
+   offset = fragn ? GET_OFFSET(msg) : 0;
    // data size must be a multiple of 8 or final fragment
    if(!(   (size%8==0)
         || (offset*8+size==buffer->datagram_size))) {
@@ -411,7 +411,7 @@ void fragment_checkOpenBridge(OpenQueueEntry_t *msg, owerror_t error) {
    // discard L2 info
    msg->payload = msg->ob_payload;
    // send notification
-   tag      = fragment_getTag(msg);
+   tag      = GET_TAG(msg);
    chain[0] = error == E_SUCCESS
               ? FRAGMENT_MOTE2PC_SENDDONE
               : FRAGMENT_MOTE2PC_FAIL;
@@ -582,12 +582,12 @@ void fragment_tryToSend(FragmentQueueEntry_t* buffer) {
    pkt->length      = actual_frag_size;
    if ( buffer->other.data.fragn ) { // offset
       packetfunctions_reserveHeaderSize(pkt, sizeof(uint8_t));
-      fragment_setOffset(pkt, actual_sent>>3);
+      SET_OFFSET(pkt, actual_sent>>3);
    }
    packetfunctions_reserveHeaderSize(pkt, 2 * sizeof(uint8_t));
-   fragment_setTag(pkt, buffer->datagram_tag);
+   SET_TAG(pkt, buffer->datagram_tag);
    packetfunctions_reserveHeaderSize(pkt, 2 * sizeof(uint8_t));
-   fragment_setSize(pkt, buffer->datagram_size);
+   SET_SIZE(pkt, buffer->datagram_size);
    if ( buffer->other.data.fragn ) {
       pkt->payload[0] |= (IPHC_DISPATCH_FRAGN << IPHC_FRAGMENT);
    } else {
@@ -631,30 +631,6 @@ void fragment_finishSend(FragmentQueueEntry_t* buffer, owerror_t error)
    pkt->creator = buffer->creator;
    fragment_freeBuffer(buffer);
    forwarding_sendDone(pkt, error);
-}
-
-inline void fragment_setSize(OpenQueueEntry_t* msg, uint16_t size) {
-   packetfunctions_htons(size, msg->payload);
-}
-
-inline void fragment_setTag(OpenQueueEntry_t* msg, uint16_t tag) {
-   packetfunctions_htons(tag, msg->payload);
-}
-
-inline void fragment_setOffset(OpenQueueEntry_t* msg, uint8_t offset) {
-   msg->payload[0] = offset;
-}
-
-inline uint16_t fragment_getSize(OpenQueueEntry_t* msg) {
-   return packetfunctions_ntohs(msg->payload);
-}
-
-inline uint16_t fragment_getTag(OpenQueueEntry_t* msg) {
-   return packetfunctions_ntohs((msg->payload) + 2 * sizeof(uint8_t));
-}
-
-inline uint8_t fragment_getOffset(OpenQueueEntry_t* msg) {
-   return *((msg->payload) + 4 * sizeof(uint8_t));
 }
 
 /**
@@ -731,8 +707,8 @@ FragmentQueueEntry_t* fragment_searchBuffer(OpenQueueEntry_t* msg, bool in) {
    dst = in ? idmanager_getMyID(ADDR_64B) : &(msg->l2_nextORpreviousHop);
 
    if ( in ) {
-      size = fragment_getSize(msg);
-      tag  = fragment_getTag(msg);
+      size = GET_SIZE(msg);
+      tag  = GET_TAG(msg);
    }
    DISABLE_INTERRUPTS();
    if ( in ) {
