@@ -178,7 +178,7 @@ void openqueue_removeAllCreatedBy(uint8_t creator) {
    INTERRUPT_DECLARATION();
    DISABLE_INTERRUPTS();
    for (i=0;i<QUEUELENGTH;i++){
-      if (openqueue_vars.queue[i].creator==creator ) {
+      if (openqueue_vars.queue[i].creator==creator) {
          openqueue_reset_entry(&(openqueue_vars.queue[i]));
 #ifndef DO_NOT_USE_FRAGMENTATION
       } else if (openqueue_vars.queue[i].creator==COMPONENT_FRAGMENT) {

@@ -293,7 +293,7 @@ void forwarding_receive(
         // change the creator of the packet
         msg->creator = COMPONENT_FORWARDING;
 
-#ifdef DO_NOT_USE_FRAGMENTATION
+#ifndef DO_NOT_USE_FRAGMENTATION
         // update l4_length value to determine IPHC size
         msg->l4_length  = msg->length - ipv6_inner_header->header_length - ipv6_outer_header->header_length;
 #endif
@@ -384,7 +384,7 @@ owerror_t forwarding_toUpperLayer(OpenQueueEntry_t* msg) {
                (errorparameter_t)2
             );
             // not sure that this is correct as iphc will free it?
-	    openqueue_freePacketBuffer(msg);
+            openqueue_freePacketBuffer(msg);
             return E_FAIL;
     }
 

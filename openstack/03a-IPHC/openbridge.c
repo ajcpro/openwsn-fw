@@ -27,7 +27,7 @@ void openbridge_triggerData() {
    //this is a temporal workaround as we are never supposed to get chunks of data
    //longer than input buffer size.. I assume that HDLC will solve that.
    // MAC header is 13B + 8 next hop so we cannot accept packets that are longer than 118B
-#ifndef DO_NOT_USE_FRAGMENTATION
+#ifdef DO_NOT_USE_FRAGMENTATION
    if (numDataBytes>(136 - 10/*21*/) || numDataBytes<8){
 #else
    // large packets are now fragmented

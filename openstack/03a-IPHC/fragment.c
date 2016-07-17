@@ -1222,5 +1222,5 @@ uint8_t fragment_askL2HeaderSize(OpenQueueEntry_t* msg) {
    hsize += 1; //dsn
    hsize += 2; //fcf
 
-   return hsize;
+   return hsize + IEEE802154_SECURITY_TAG_LEN;
 }
