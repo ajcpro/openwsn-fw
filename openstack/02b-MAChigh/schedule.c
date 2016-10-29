@@ -557,6 +557,25 @@ uint8_t schedule_getNumOfSlotsByType(cellType_t type){
    return returnVal;
 }
 
+uint8_t schedule_getNumberOfFreeEntries(){
+   uint8_t i; 
+   uint8_t counter;
+   
+   INTERRUPT_DECLARATION();
+   DISABLE_INTERRUPTS();
+   
+   counter = 0;
+   for(i=0;i<MAXACTIVESLOTS;i++) {
+      if(schedule_vars.scheduleBuf[i].type == CELLTYPE_OFF){
+         counter++;
+      }
+   }
+   
+   ENABLE_INTERRUPTS();
+   
+   return counter;
+}
+
 //=== from IEEE802154E: reading the schedule and updating statistics
 
 void schedule_syncSlotOffset(slotOffset_t targetSlotOffset) {
@@ -578,13 +597,11 @@ void schedule_advanceSlot() {
    
    INTERRUPT_DECLARATION();
    DISABLE_INTERRUPTS();
-#ifdef GOLDEN_IMAGE_ROOT
    if (schedule_vars.currentScheduleEntry->slotOffset >= ((scheduleEntry_t*)schedule_vars.currentScheduleEntry->next)->slotOffset
        ) {
        // one slotframe has elapsed
        sf0_notifyNewSlotframe();
    }   
-#endif
    schedule_vars.currentScheduleEntry = schedule_vars.currentScheduleEntry->next;
    
    ENABLE_INTERRUPTS();

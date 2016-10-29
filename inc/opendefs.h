@@ -24,12 +24,6 @@ static const uint8_t infoStackName[] = "OpenWSN ";
 #define OPENWSN_VERSION_MINOR     9
 #define OPENWSN_VERSION_PATCH     0
 
-// golden image version and type
-#define GOLDEN_IMAGE_VERSION      2
-// define golden image type: only one can be used
-#define GD_TYPE_ROOT         1 // dagroot
-#define GD_TYPE_SNIFFER      2 // sniffer
-
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -60,6 +54,8 @@ static const uint8_t infoStackName[] = "OpenWSN ";
 #ifndef DO_NOT_USE_FRAGMENTATION
 #define TOTAL_DYNAMIC_MEMORY 2621 // 20 frames
 #endif
+
+#define MAXNUMNEIGHBORS 10
 
 enum {
    E_SUCCESS                           = 0,
@@ -107,13 +103,14 @@ enum {
 // warning: first 4 MSB of 2° octect may coincide with previous protocol number
 enum {
    //TCP
-   WKP_TCP_HTTP                        =    80,
-   WKP_TCP_ECHO                        =     7,
+   WKP_TCP_HTTP                        =      80,
+   WKP_TCP_ECHO                        =       7,
    //UDP
-   WKP_UDP_COAP                        =  5683,
-   WKP_UDP_ECHO                        =     7,
-   WKP_UDP_INJECT                      =  2000,
-   WKP_UDP_RINGMASTER                  = 15000,
+   WKP_UDP_COAP                        =    5683,
+   WKP_UDP_ECHO                        =       7,
+   WKP_UDP_INJECT                      =    2000,
+   WKP_UDP_RINGMASTER                  =   15000,
+   WKP_UDP_SERIALBRIDGE                =    2001,
 };
 
 //status elements
@@ -190,6 +187,7 @@ enum {
    COMPONENT_UINJECT                   = 0x26,
    COMPONENT_RRT                       = 0x27,
    COMPONENT_SECURITY                  = 0x28,
+   COMPONENT_USERIALBRIDGE             = 0x29,
 };
 
 /**
@@ -368,6 +366,26 @@ typedef struct {
    uint8_t*      packet;                         
 #endif
 } OpenQueueEntry_t;
+
+
+BEGIN_PACK
+typedef struct {
+   bool             used;
+   uint8_t          parentPreference;
+   bool             stableNeighbor;
+   uint8_t          switchStabilityCounter;
+   open_addr_t      addr_64b;
+   dagrank_t        DAGrank;
+   int8_t           rssi;
+   uint8_t          numRx;
+   uint8_t          numTx;
+   uint8_t          numTxACK;
+   uint8_t          numWraps;//number of times the tx counter wraps. can be removed if memory is a restriction. also check openvisualizer then.
+   asn_t            asn;
+   uint8_t          joinPrio;
+} neighborRow_t;
+END_PACK
+
 
 //=========================== variables =======================================
 

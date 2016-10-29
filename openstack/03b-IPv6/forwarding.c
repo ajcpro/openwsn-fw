@@ -311,7 +311,7 @@ void forwarding_receive(
                     (errorparameter_t)senderRank
                 );
             }
-            if (senderRank < neighbors_getMyDAGrank()){
+            if (senderRank < icmpv6rpl_getMyDAGrank()){
                 // loop detected
                 // set flag
                 rpl_option->flags |= R_FLAG;
@@ -320,7 +320,7 @@ void forwarding_receive(
                     COMPONENT_FORWARDING,
                     ERR_LOOP_DETECTED,
                     (errorparameter_t) senderRank,
-                    (errorparameter_t) neighbors_getMyDAGrank()
+                    (errorparameter_t) icmpv6rpl_getMyDAGrank()
                 );
             }
             forwarding_createRplOption(rpl_option, rpl_option->flags);
@@ -414,7 +414,7 @@ void forwarding_getNextHop(open_addr_t* destination128b, open_addr_t* addressToW
       packetfunctions_ip128bToMac64b(destination128b,&temp_prefix64btoWrite,addressToWrite64b);
    } else {
       // destination is remote, send to preferred parent
-      neighbors_getPreferredParentEui64(addressToWrite64b);
+      icmpv6rpl_getPreferredParentEui64(addressToWrite64b);
    }
 }
 
@@ -748,7 +748,7 @@ owerror_t forwarding_send_internal_SourceRouting(
                 (errorparameter_t)senderRank
             );
         }
-        if (senderRank > neighbors_getMyDAGrank()){
+        if (senderRank > icmpv6rpl_getMyDAGrank()){
             // loop detected
             // set flag
             rpl_option->flags |= R_FLAG;
@@ -757,7 +757,7 @@ owerror_t forwarding_send_internal_SourceRouting(
                 COMPONENT_FORWARDING,
                 ERR_LOOP_DETECTED,
                 (errorparameter_t) senderRank,
-                (errorparameter_t) neighbors_getMyDAGrank()
+                (errorparameter_t) icmpv6rpl_getMyDAGrank()
             );
         }
         forwarding_createRplOption(rpl_option, rpl_option->flags);
@@ -791,7 +791,7 @@ void forwarding_createRplOption(rpl_option_ht* rpl_option, uint8_t flags) {
     uint8_t I,K;
     rpl_option->optionType         = RPL_HOPBYHOP_HEADER_OPTION_TYPE;
     rpl_option->rplInstanceID      = icmpv6rpl_getRPLIntanceID();
-    rpl_option->senderRank         = neighbors_getMyDAGrank();
+    rpl_option->senderRank         = icmpv6rpl_getMyDAGrank();
    
     if (rpl_option->rplInstanceID == 0){
        I = 1;

@@ -38,10 +38,11 @@ static const uint8_t chTemplate_default[] = {
 #define IEEE802154E_PAYLOAD_DESC_LEN_SHIFT                 0x04
 #define IEEE802154E_PAYLOAD_DESC_GROUP_ID_MLME             (1<<11)
 #define IEEE802154E_PAYLOAD_DESC_TYPE_MLME                 (1<<15)
-#define IEEE802154E_DESC_TYPE_LONG                         (1<<15)
-#define IEEE802154E_DESC_TYPE_SHORT                        (0<<15)
+#define IEEE802154E_DESC_TYPE_LONG                         ((uint16_t)(1<<15))
+#define IEEE802154E_DESC_TYPE_SHORT                        ((uint16_t)(0<<15))
 
-#define IANA_6TOP_IE_GROUP_ID                              (2<<11)
+// GROUP_ID changed to 3 https://openwsn.atlassian.net/browse/FW-569
+#define IANA_6TOP_IE_GROUP_ID                              (3<<11)
 #define IANA_6TOP_IE_GROUP_ID_TYPE                         (1<<15)
 
 #define IEEE802154E_DESC_TYPE_HEADER_IE                    0x0000
@@ -141,7 +142,7 @@ typedef enum {
 //    - duration_in_seconds = ticks / 32768
 enum ieee154e_atomicdurations_enum {
    // time-slot related
-#ifdef GOLDEN_IMAGE_ROOT
+#ifdef SLOTDURATION_10MS
    TsTxOffset                =   70,                  //  2120us
    TsLongGT                  =   36,                  //  1100us
    TsTxAckDelay              =   33,                  //  1000us
@@ -162,13 +163,11 @@ enum ieee154e_atomicdurations_enum {
    delayTx                   =  PORT_delayTx,         // between GO signal and SFD
    delayRx                   =  PORT_delayRx,         // between GO signal and start listening
    // radio watchdog
-#ifdef GOLDEN_IMAGE_ROOT
    wdRadioTx                 =   33,                  //  1000us (needs to be >delayTx)
    wdDataDuration            =  164,                  //  5000us (measured 4280us with max payload)
+#ifdef SLOTDURATION_10MS
    wdAckDuration             =   80,                  //  2400us (measured 1000us)
 #else
-   wdRadioTx                 =   33,                  //  1000us (needs to be >delayTx)
-   wdDataDuration            =  164,                  //  5000us (measured 4280us with max payload)
    wdAckDuration             =   98,                  //  3000us (measured 1000us)
 #endif
 };
