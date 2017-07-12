@@ -1,7 +1,7 @@
 #include "packetfunctions.h"
 #include "openserial.h"
 #include "idmanager.h"
-#include "ieee802154_security_driver.h"
+#include "IEEE802154_security.h"
 
 //=========================== variables =======================================
 
@@ -363,9 +363,6 @@ void packetfunctions_duplicatePacket(OpenQueueEntry_t* dst, OpenQueueEntry_t* sr
    // update l2_ASNpayload pointer
    dst->l2_ASNpayload = dst->payload + (src->l2_ASNpayload - src->payload);
 
-   // update l2_scheduleIE_cellObjects pointer
-   dst->l2_sixtop_cellObjects = dst->payload + (src->l2_sixtop_cellObjects - src->payload);
-
    // update l2_payload pointer
    dst->l2_payload = dst->payload + (src->l2_payload - src->payload);
 
@@ -509,6 +506,18 @@ uint32_t packetfunctions_ntohl( uint8_t* src ) {
       (((uint32_t) src[2]) << 8)      |
       (((uint32_t) src[3])
       );
+}
+
+// reverse byte order in the array
+void packetfunctions_reverseArrayByteOrder(uint8_t* start, uint8_t len) {
+   uint8_t *lo = start;
+   uint8_t *hi = start + len - 1;
+   uint8_t swap;
+   while (lo < hi) {
+      swap = *lo;
+      *lo++ = *hi;
+      *hi-- = swap;
+   }
 }
 
 //=========================== private =========================================

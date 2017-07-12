@@ -69,6 +69,7 @@ uint8_t*  openmemory_increaseMemory(uint8_t* address, uint16_t size);
 uint8_t*  openmemory_firstSegmentAddr(uint8_t* address);
 uint8_t*  openmemory_lastSegmentAddr(uint8_t* address);
 bool      openmemory_sameMemoryArea(uint8_t* addr1, uint8_t* addr2);
+uint16_t  openmemory_sizeof(uint8_t* address);
 
 /**
 \}

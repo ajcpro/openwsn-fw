@@ -10,7 +10,7 @@
 #include "openbridge.h"
 #include "openserial.h"
 #include "openqueue.h"
-#include "ieee802154_security_driver.h"
+#include "IEEE802154_security.h"
 
 //=========================== variables =======================================
 
@@ -48,7 +48,7 @@ FragmentQueueEntry_t* fragment_searchBufferFromMsg_a(OpenQueueEntry_t* msg);
 // timer
 void fragment_disableTimer(FragmentQueueEntry_t* buffer);
 void fragment_activateTimer(FragmentQueueEntry_t* buffer);
-void fragment_timeout_timer_cb(opentimer_id_t id);
+void fragment_timeout_timer_cb(opentimers_id_t id);
 
 // action functions
 void fragment_action(FragmentQueueEntry_t* buffer, uint8_t frag);
@@ -828,22 +828,26 @@ OpenQueueEntry_t* fragment_restartBuffer(FragmentQueueEntry_t* buffer) {
 }
 
 void fragment_activateTimer(FragmentQueueEntry_t* buffer) {
-   if (buffer->timerId==FRAGMENT_NOTIMER)
-      buffer->timerId = opentimers_start(FRAGMENT_TIMEOUT_MS,
+   if (buffer->timerId==FRAGMENT_NOTIMER) {
+      buffer->timerId = opentimers_create();
+      if ( buffer->timerId != TOO_MANY_TIMERS_ERROR )
+         opentimers_scheduleIn(buffer->timerId, FRAGMENT_TIMEOUT_MS,
                      TIMER_ONESHOT, TIME_MS, fragment_timeout_timer_cb);
-   // I am not checking TOO_MANY_TIMERS_ERROR
+   }
 }
 
 void fragment_disableTimer(FragmentQueueEntry_t* buffer) {
    if ( buffer != NULL && buffer->timerId != FRAGMENT_NOTIMER ) {
       if ( buffer->timerId != TOO_MANY_TIMERS_ERROR ) {
-         opentimers_stop(buffer->timerId);
+         // opentimers_cancel(buffer->timerId);
+	 // Not sure if both are needed
+         opentimers_destroy(buffer->timerId);
       }
       buffer->timerId=FRAGMENT_NOTIMER;
    }
 }
 
-void fragment_timeout_timer_cb(opentimer_id_t id) {
+void fragment_timeout_timer_cb(opentimers_id_t id) {
    uint8_t               i;
    uint8_t               j;
    FragmentQueueEntry_t* buffer;
@@ -855,7 +859,7 @@ void fragment_timeout_timer_cb(opentimer_id_t id) {
    INTERRUPT_DECLARATION();
 
    openserial_printInfo(COMPONENT_FRAGMENT, ERR_EXPIRED_TIMER,
-                          (errorparameter_t)0,
+                          (errorparameter_t)id,
 			  (errorparameter_t)0);
    DISABLE_INTERRUPTS();
    for (i=0;i<FRAGQLENGTH;i++)
@@ -878,6 +882,7 @@ void fragment_timeout_timer_cb(opentimer_id_t id) {
             openqueue_freePacketBuffer_atomic(buffer->msg);
 	    buffer->msg = NULL;
 	 }
+         opentimers_destroy(id);
 	 buffer->timerId = FRAGMENT_NOTIMER;
 
 	 msg = buffer->msg;

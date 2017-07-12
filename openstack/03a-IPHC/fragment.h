@@ -10,7 +10,7 @@
 
 #include "opendefs.h"
 #include "opentimers.h"
-#include "ieee802154_security_driver.h"
+#include "IEEE802154_security.h"
 
 //=========================== define ==========================================
  
@@ -109,7 +109,7 @@ typedef struct FragmentQueueEntry {
    uint16_t            datagram_tag;
    open_addr_t         dst;           // i802.15.4 addresses or originator
    open_addr_t         src;           // and destination mesh addresses
-   opentimer_id_t      timerId;
+   opentimers_id_t     timerId;
    FragmentAction      action;        // action to process fragments
    uint8_t             number;        // number of fragments in list
    int8_t              offset;        // fragment offset

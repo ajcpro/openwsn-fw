@@ -286,6 +286,27 @@ bool openmemory_sameMemoryArea(uint8_t* addr1, uint8_t* addr2)
    return FALSE;
 }
 
+/**
+ * \brief Returns the reservation size from the indicated address
+ *
+ * \param address A pointer to an address included in a previsouly-allocated
+ *                memory area.
+ *
+ * \returns The allocated size from address to the end of reservation
+ */
+uint16_t openmemory_sizeof(uint8_t* address)
+{
+   uint8_t* first;
+   uint8_t* last;
+
+
+   if ( ! openmemory_segmentAddr(address, &first, &last) ) {
+      return 0;
+   }
+
+   return last - address + 1;
+}
+
 //=========================== private =========================================
 
 /**

@@ -7,8 +7,7 @@
 #include "openserial.h"
 #include "packetfunctions.h"
 #include "IEEE802154E.h"
-#include "ieee802154_security_driver.h"
-
+#include "IEEE802154_security.h"
 
 //=========================== defination =====================================
 
@@ -358,6 +357,7 @@ void openqueue_reset_entry(OpenQueueEntry_t* entry) {
 #ifndef DO_NOT_USE_FRAGMENTATION
    entry->l4_length                    = 0;
 #endif
+   entry->l4_protocol_compressed       = FALSE;
    //l3
    entry->l3_destinationAdd.type       = ADDR_NONE;
    entry->l3_sourceAdd.type            = ADDR_NONE;
@@ -366,6 +366,7 @@ void openqueue_reset_entry(OpenQueueEntry_t* entry) {
    entry->l2_frameType                 = IEEE154_TYPE_UNDEFINED;
    entry->l2_retriesLeft               = 0;
    entry->l2_IEListPresent             = 0;
+   entry->l2_isNegativeACK             = 0;
    entry->l2_payloadIEpresent          = 0;
    //l2-security
    entry->l2_securityLevel             = 0;

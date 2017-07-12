@@ -38,6 +38,8 @@ project:
     board          Board to build for. 'python' is for software simulation.
                    telosb, wsn430v14, wsn430v13b, gina, z1, python,
                    iot-lab_M3, iot-lab_A8-M3
+
+    version        Board version
         
     toolchain      Toolchain implementation. The 'python' board requires gcc
                    (MinGW on Windows build host).
@@ -75,10 +77,8 @@ project:
     forcetopology  Force the topology to the one indicated in the
                    openstack/02a-MAClow/topology.c file.
     noadaptivesync Do not use adaptive synchronization.
-    cryptoengine   Select appropriate crypto engine implementation
-                   (dummy_crypto_engine, firmware_crypto_engine, 
-                   board_crypto_engine).
     l2_security   Use hop-by-hop encryption and authentication.
+                  0 (off), 1 (on)
     ide           qtcreator
     fragmentation  Compile with fragmentation support if available on board
                    1 (on), 0 (off)
@@ -107,7 +107,8 @@ command_line_options = {
         'wsn430v14',
         'z1',
         # Cortex-M3
-        'OpenMote-CC2538',
+        'openmote-cc2538',
+        'silabs-ezr32wg',
         'openmotestm',
         'iot-lab_M3',
         'iot-lab_A8-M3',
@@ -137,11 +138,11 @@ command_line_options = {
     'forcetopology':    ['0','1'],
     'debug':            ['0','1'],
     'noadaptivesync':   ['0','1'],
-    'cryptoengine':     ['', 'dummy_crypto_engine', 'firmware_crypto_engine', 'board_crypto_engine'],
     'l2_security':      ['0','1'],
-    'goldenImage':      ['none','root','sniffer'],
+    'deadline_option':  ['0','1'],
     'ide':              ['none','qtcreator'],
     'fragmentation':    ['1','0'],
+    'revision':         ['']
 }
 
 def validate_option(key, value, env):
@@ -266,13 +267,6 @@ command_line_vars.AddVariables(
         int,                                               # converter
     ),
     (
-        'cryptoengine',                                    # key
-        '',                                                # help
-        command_line_options['cryptoengine'][0],           # default
-        validate_option,                                   # validator
-        None,                                              # converter
-    ),
-    (
         'debug',                                           # key
         '',                                                # help
         command_line_options['debug'][0],                  # default
@@ -294,6 +288,13 @@ command_line_vars.AddVariables(
         int,                                               # converter
     ),
     (
+        'deadline_option',                                     # key
+        '',                                                # help
+        command_line_options['deadline_option'][1],            # default
+        validate_option,                                   # validator
+        int,                                               # converter
+    ),
+    (
         'apps',                                            # key
         'comma-separated list of user applications',       # help
         '',                                                # default
@@ -301,9 +302,9 @@ command_line_vars.AddVariables(
         None,                                              # converter
     ),
     (
-        'ide',                                            # key
-        'qtcreator by now',                               # help
-        command_line_options['ide'][0],                   # default
+        'ide',                                             # key
+        'qtcreator by now',                                # help
+        command_line_options['ide'][0],                    # default
         validate_option,                                   # validator
         None,                                              # converter
     ),
@@ -313,6 +314,13 @@ command_line_vars.AddVariables(
         command_line_options['fragmentation'][0],          # default
         validate_option,                                   # validator
         int,                                               # converter
+    ),
+    (
+        'revision',                                        # key
+        'board revision',                                  # help
+        command_line_options['revision'][0],               # default
+        None,                                              # validator
+        None,                                              # converter
     ),
 )
 
