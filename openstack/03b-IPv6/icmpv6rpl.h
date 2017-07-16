@@ -135,6 +135,18 @@ typedef struct {
 END_PACK
 
 //=========================== module variables ================================
+BEGIN_PACK
+typedef struct {
+   uint8_t type; // 0x08
+   uint8_t optLen; // 30d
+   uint8_t prefLen;//64
+   uint8_t flags; //96 L=0,A=1,R=1,00000
+   uint32_t vlifetime; //0xFFFFFFFF infinity
+   uint32_t plifetime; //0xFFFFFFFF infinity
+   uint32_t reserved;
+   uint8_t  prefix[16]; // myaddress
+}icmpv6rpl_pio_t;
+END_PACK
 
 typedef struct {
    // admin
@@ -143,6 +155,7 @@ typedef struct {
    uint8_t                   fDodagidWritten;         ///< is DODAGID already written to DIO/DAO?
    // DIO-related
    icmpv6rpl_dio_ht          dio;                     ///< pre-populated DIO packet.
+   icmpv6rpl_pio_t           pio;                     ///< pre-populated PIO com
    open_addr_t               dioDestination;          ///< IPv6 destination address for DIOs.
    uint16_t                  dioTimerCounter;         ///< counter to determine when to send DIO.
    opentimers_id_t           timerIdDIO;              ///< ID of the timer used to send DIOs.
@@ -161,7 +174,11 @@ typedef struct {
    uint8_t                   ParentIndex;             ///< index of Parent in neighbor table (iff haveParent==TRUE)
    // actually only here for debug
    icmpv6rpl_dio_ht*         incomingDio;             //keep it global to be able to debug correctly.
+   icmpv6rpl_pio_t*          incomingPio;             //pio structure incoming
+   bool                      daoSent;
 } icmpv6rpl_vars_t;
+
+
 
 //=========================== prototypes ======================================
 
@@ -170,7 +187,7 @@ void     icmpv6rpl_sendDone(OpenQueueEntry_t* msg, owerror_t error);
 void     icmpv6rpl_receive(OpenQueueEntry_t* msg);
 void     icmpv6rpl_writeDODAGid(uint8_t* dodagid);
 uint8_t  icmpv6rpl_getRPLIntanceID(void);
-void     icmpv6rpl_getRPLDODAGid(uint8_t* address_128b);
+owerror_t icmpv6rpl_getRPLDODAGid(uint8_t* address_128b);
 void     icmpv6rpl_setDIOPeriod(uint16_t dioPeriod);
 void     icmpv6rpl_setDAOPeriod(uint16_t daoPeriod);
 bool     icmpv6rpl_getPreferredParentIndex(uint8_t* indexptr);           // new DB
@@ -181,6 +198,7 @@ void     icmpv6rpl_setMyDAGrank(dagrank_t rank);                         // new 
 void     icmpv6rpl_killPreferredParent(void);                            // new DB
 void     icmpv6rpl_updateMyDAGrankAndParentSelection(void);              // new DB
 void     icmpv6rpl_indicateRxDIO(OpenQueueEntry_t* msg);                 // new DB
+bool     icmpv6rpl_daoSent(void);
 
 
 /**

@@ -832,7 +832,7 @@ void fragment_activateTimer(FragmentQueueEntry_t* buffer) {
       buffer->timerId = opentimers_create();
       if ( buffer->timerId != TOO_MANY_TIMERS_ERROR )
          opentimers_scheduleIn(buffer->timerId, FRAGMENT_TIMEOUT_MS,
-                     TIMER_ONESHOT, TIME_MS, fragment_timeout_timer_cb);
+                     TIME_MS, TIMER_ONESHOT, fragment_timeout_timer_cb);
    }
 }
 
