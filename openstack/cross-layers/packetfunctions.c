@@ -1,7 +1,9 @@
 #include "packetfunctions.h"
 #include "openserial.h"
 #include "idmanager.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
 #include "IEEE802154_security.h"
+#endif
 
 //=========================== variables =======================================
 
@@ -250,7 +252,6 @@ void packetfunctions_readAddress(uint8_t* payload, uint8_t type, open_addr_t* wr
 void packetfunctions_writeAddress(OpenQueueEntry_t* msg, open_addr_t* address, bool littleEndian) {
    uint8_t i;
    uint8_t address_length;
-   uint8_t *payload;
    
    switch (address->type) {
       case ADDR_16B:
@@ -270,15 +271,14 @@ void packetfunctions_writeAddress(OpenQueueEntry_t* msg, open_addr_t* address, b
                                (errorparameter_t)7);
          return;
    }
-   
-   payload = msg->payload;
-   packetfunctions_reserveHeaderSize(msg, address_length);
+ 
    for (i=0;i<address_length;i++) {
-      payload -= sizeof(uint8_t);
+      msg->payload      -= sizeof(uint8_t);
+      msg->length       += sizeof(uint8_t);
       if (littleEndian) {
-         *((uint8_t*)(payload)) = address->addr_128b[i];
+         *((uint8_t*)(msg->payload)) = address->addr_128b[i];
       } else {
-         *((uint8_t*)(payload)) = address->addr_128b[address_length-1-i];
+         *((uint8_t*)(msg->payload)) = address->addr_128b[address_length-1-i];
       }
    }
 }
@@ -441,23 +441,41 @@ bool packetfunctions_checkCRC(OpenQueueEntry_t* msg) {
 void packetfunctions_calculateChecksum(OpenQueueEntry_t* msg, uint8_t* checksum_ptr) {
    uint8_t temp_checksum[2];
    uint8_t little_helper[2];
+   open_addr_t localscopeAddress;
    
    // initialize running checksum
    temp_checksum[0]  = 0;
    temp_checksum[1]  = 0;
    
    //===== IPv6 pseudo header
+
+   // determine the source and destination address format
+   if (packetfunctions_isBroadcastMulticast(&msg->l3_destinationAdd)==TRUE){
+      // use link local address for source address (prefix and EUI64)
+
+      // source address
+      onesComplementSum(temp_checksum,(uint8_t*)linklocalprefix,8);
+      memcpy(&localscopeAddress,idmanager_getMyID(ADDR_64B),sizeof(open_addr_t));
+      // invert 'u' bit (section 2.5.1 at https://www.ietf.org/rfc/rfc2373.txt)
+      localscopeAddress.addr_64b[0] ^= 0x02;
+      onesComplementSum(temp_checksum,localscopeAddress.addr_64b,8);
+
+      // boardcast destination address
+      onesComplementSum(temp_checksum,msg->l3_destinationAdd.addr_128b,16);
+   } else {
+      // use 128-bit ipv6 address for source address and destination address
+
+      // source address
+      onesComplementSum(temp_checksum,(idmanager_getMyID(ADDR_PREFIX))->prefix,8);
+      onesComplementSum(temp_checksum,(idmanager_getMyID(ADDR_64B))->addr_64b,8);
+      // destination address
+      onesComplementSum(temp_checksum,msg->l3_destinationAdd.addr_128b,16);
+   }
    
-   // source address (prefix and EUI64)
-   onesComplementSum(temp_checksum,(idmanager_getMyID(ADDR_PREFIX))->prefix,8);
-   onesComplementSum(temp_checksum,(idmanager_getMyID(ADDR_64B))->addr_64b,8);
-   
-   // destination address
-   onesComplementSum(temp_checksum,msg->l3_destinationAdd.addr_128b,16);
    
    // length
-   little_helper[0] = (msg->length & 0xFF00) >> 8;
-   little_helper[1] =  msg->length & 0x00FF;
+   little_helper[0] = 0;
+   little_helper[1] =  msg->length;
    onesComplementSum(temp_checksum,little_helper,2);
    
    // next header

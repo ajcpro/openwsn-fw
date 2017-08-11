@@ -15,7 +15,9 @@
 #include "sixtop.h"
 #include "adaptive_sync.h"
 #include "sctimer.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
 #include "openmemory.h"
+#endif
 
 //=========================== variables =======================================
 
