@@ -252,6 +252,7 @@ void packetfunctions_readAddress(uint8_t* payload, uint8_t type, open_addr_t* wr
 void packetfunctions_writeAddress(OpenQueueEntry_t* msg, open_addr_t* address, bool littleEndian) {
    uint8_t i;
    uint8_t address_length;
+   uint8_t* payload;
    
    switch (address->type) {
       case ADDR_16B:
@@ -272,17 +273,14 @@ void packetfunctions_writeAddress(OpenQueueEntry_t* msg, open_addr_t* address, b
          return;
    }
  
+   payload = msg->payload;
+   packetfunctions_reserveHeaderSize(msg, address_length); 
    for (i=0;i<address_length;i++) {
-#ifdef DO_NOT_USE_FRAGMENTATION
-      msg->payload      -= sizeof(uint8_t);
-      msg->length       += sizeof(uint8_t);
-#else
-      packetfunctions_reserveHeaderSize(msg, sizeof(uint8_t)); 
-#endif
+      payload -= sizeof(uint8_t);
       if (littleEndian) {
-         *((uint8_t*)(msg->payload)) = address->addr_128b[i];
+         *((uint8_t*)(payload)) = address->addr_128b[i];
       } else {
-         *((uint8_t*)(msg->payload)) = address->addr_128b[address_length-1-i];
+         *((uint8_t*)(payload)) = address->addr_128b[address_length-1-i];
       }
    }
 }
