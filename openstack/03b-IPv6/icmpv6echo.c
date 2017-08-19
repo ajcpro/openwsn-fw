@@ -5,6 +5,10 @@
 #include "openqueue.h"
 #include "packetfunctions.h"
 #include "debugpins.h"
+#ifndef DO_NOT_USE_FRAGMENTATION
+#include "openmemory.h"
+#include "IEEE802154_security.h"
+#endif
 
 //=========================== variables =======================================
 
@@ -101,13 +105,38 @@ void icmpv6echo_receive(OpenQueueEntry_t* msg) {
                                (errorparameter_t)msg->length,
                                (errorparameter_t)0);
          if (icmpv6echo_vars.isReplyEnabled){
+#ifdef DO_NOT_USE_FRAGMENTATION
+             // get a new openqueuEntry_t for the echo reply
+             reply = openqueue_getFreePacketBuffer(COMPONENT_ICMPv6ECHO);
+             if (reply==NULL) {
+                openserial_printError(COMPONENT_ICMPv6ECHO,ERR_NO_FREE_PACKET_BUFFER,
+                                      (errorparameter_t)1,
+                                      (errorparameter_t)0);
+                openqueue_freePacketBuffer(msg);
+                return;
+             }
+             // take ownership over reply
+             reply->creator = COMPONENT_ICMPv6ECHO;
+             reply->owner   = COMPONENT_ICMPv6ECHO;
+             // copy payload from msg to (end of) reply
+             packetfunctions_reserveHeaderSize(reply,msg->length);
+             memcpy(reply->payload,msg->payload,msg->length);
+             // copy source of msg in destination of reply
+             memcpy(&(reply->l3_destinationAdd),&(msg->l3_sourceAdd),sizeof(open_addr_t));
+             // free up msg
+             openqueue_freePacketBuffer(msg);
+#else
              // reuse msg for reply: do not duplicate memory, it may be a big one
              reply = msg;
              // take ownership over reply
              reply->creator = COMPONENT_ICMPv6ECHO;
+	     // copy payload from msg to (end of) reply
+	     reply->payload = openmemory_moveToEnd(reply->payload,
+                  reply->length,
+                  FRAME_DATA_TAIL + IEEE802154_SECURITY_TAG_LEN );
              // copy source of msg in destination of reply
              memcpy(&(reply->l3_destinationAdd),&(msg->l3_sourceAdd),sizeof(open_addr_t));
-             // free up msg
+#endif
              msg = NULL;
              // administrative information for reply
              reply->l4_protocol                   = IANA_ICMPv6;

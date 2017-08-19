@@ -97,8 +97,8 @@ typedef union {
       uint16_t actual_sent;       // data sent
       uint8_t  size;              // next fragment size
       bool     fragn;             // True if not first fragment
-   } data;
-   FragmentOffsetEntry_t* list;
+   } txdata;
+   FragmentOffsetEntry_t* rxlist;
 } FragmentOtherData_t;
 
 typedef struct FragmentQueueEntry {
@@ -131,7 +131,7 @@ owerror_t fragment_prependHeader(OpenQueueEntry_t* msg);
 bool fragment_retrieveHeader(OpenQueueEntry_t* msg);
 void fragment_sendDone(OpenQueueEntry_t *msg, owerror_t error);
 FragmentQueueEntry_t* fragment_searchBufferFromMsg(OpenQueueEntry_t* msg);
-void fragment_removeCreatedBy(OpenQueueEntry_t* msg);
+bool fragment_removeCreatedBy(OpenQueueEntry_t* msg, uint8_t creator);
 void fragment_assignAction(FragmentQueueEntry_t* buffer, FragmentAction action);
 void fragment_checkOpenBridge(OpenQueueEntry_t *msg, owerror_t error);
 void fragment_deleteNeighbor(open_addr_t* neighbor);

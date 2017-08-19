@@ -187,13 +187,13 @@ void openqueue_removeAllCreatedBy(uint8_t creator) {
    INTERRUPT_DECLARATION();
    DISABLE_INTERRUPTS();
    for (i=0;i<QUEUELENGTH;i++){
+#ifndef DO_NOT_USE_FRAGMENTATION
+      if ( fragment_removeCreatedBy(&(openqueue_vars.queue[i]), creator) ) {
+         openqueue_freePacketBuffer_atomic(&(openqueue_vars.queue[i]));
+      } else
+#endif
       if (openqueue_vars.queue[i].creator==creator) {
          openqueue_reset_entry(&(openqueue_vars.queue[i]));
-#ifndef DO_NOT_USE_FRAGMENTATION
-      } else if (openqueue_vars.queue[i].creator==COMPONENT_FRAGMENT) {
-         fragment_removeCreatedBy(&(openqueue_vars.queue[i]));
-         openqueue_freePacketBuffer_atomic(&(openqueue_vars.queue[i]));
-#endif
       }
    }
    ENABLE_INTERRUPTS();

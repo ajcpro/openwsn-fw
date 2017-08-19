@@ -10,6 +10,7 @@
 #include "openbridge.h"
 #include "openserial.h"
 #include "openqueue.h"
+#include "IEEE802154.h"
 #include "IEEE802154_security.h"
 
 //=========================== variables =======================================
@@ -97,7 +98,6 @@ owerror_t fragment_prependHeader(OpenQueueEntry_t* msg) {
    uint8_t*              auxPacket;
    FragmentQueueEntry_t* buffer;
 
-   msg->owner   = COMPONENT_FRAGMENT;
    l2_hsize     = fragment_askL2HeaderSize(msg);
    max_fragment = FRAGMENT_DATA_UTIL - l2_hsize;
    if ( msg->length <= max_fragment ) {
@@ -109,7 +109,7 @@ owerror_t fragment_prependHeader(OpenQueueEntry_t* msg) {
    max_fragment    -= FRAGMENT_FRAG1_HL;
    actual_frag_size = max_fragment & 0xF8; // =/8*8;
    // RFC 4944 page 11: "The first link fragment SHALL contain
-   // the first fragment header.
+   // the first fragment header".
    if ( actual_frag_size < iphc_hsize ) {
       openserial_printError(COMPONENT_FRAGMENT, ERR_6LOWPAN_UNSUPPORTED,
                             (errorparameter_t)0,
@@ -232,12 +232,12 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
    tempFO.fragment_offset = offset;
    DISABLE_INTERRUPTS();
    for (i=0;i<buffer->number;i++) {
-      if ( BUFFER_EQUAL(buffer->other.list[i],tempFO) ) {
+      if ( BUFFER_EQUAL(buffer->other.rxlist[i],tempFO) ) {
          ENABLE_INTERRUPTS();
          // Duplicated fragment
          openqueue_freePacketBuffer(msg);
          return TRUE;
-      } else if ( BUFFER_OVERLAP(buffer->other.list[i],tempFO) ) {
+      } else if ( BUFFER_OVERLAP(buffer->other.rxlist[i],tempFO) ) {
          uint16_t    tag;
          uint16_t    size;
          open_addr_t addr;
@@ -268,10 +268,10 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
          DISABLE_INTERRUPTS();
       }
    }
-   buffer->other.list[buffer->number].fragment_offset = offset;
-   buffer->other.list[buffer->number].fragment_size   = size;
-   buffer->other.list[buffer->number].fragment        = msg->payload;
-   buffer->other.list[buffer->number].state = FRAGMENT_RECEIVED;
+   buffer->other.rxlist[buffer->number].fragment_offset = offset;
+   buffer->other.rxlist[buffer->number].fragment_size   = size;
+   buffer->other.rxlist[buffer->number].fragment        = msg->payload;
+   buffer->other.rxlist[buffer->number].state = FRAGMENT_RECEIVED;
    dispatch = buffer->number++;
 
    if ( buffer->number == 1 ) {
@@ -298,7 +298,7 @@ bool fragment_retrieveHeader(OpenQueueEntry_t* msg) {
    // Initial fragment
    if (! fragn) {
       buffer->msg = msg;
-      buffer->other.list[dispatch].fragment = NULL;
+      buffer->other.rxlist[dispatch].fragment = NULL;
       ENABLE_INTERRUPTS();
       packetfunctions_tossHeader(msg, FRAGMENT_FRAG1_HL);
       return FALSE;
@@ -357,20 +357,26 @@ FragmentQueueEntry_t* fragment_searchBufferFromMsg(OpenQueueEntry_t* msg) {
 /**
 \brief  Free the fragment buffer used by a message.
 
-\note   This method is created to be used by "openqueue_removeAllCreatedBy"
+\note   This method is created to be used by "openqueue_removeAllCreatedBy".
+        It does not support removing messages created by this module.
 
 \param  msg  The message to be removed by openqueue.
 */
-void fragment_removeCreatedBy(OpenQueueEntry_t* msg) {
+bool fragment_removeCreatedBy(OpenQueueEntry_t* msg, uint8_t creator) {
    FragmentQueueEntry_t* buffer;
 
    if ( (buffer = fragment_searchBufferFromMsg_a(msg)) == NULL ) {
-      return;
+      return FALSE;
+   }
+   if ( buffer->creator != creator ) { // Is it a fragmented message?
+      return FALSE;
    }
    if ( buffer->payload ) {
       openmemory_freeMemory(buffer->payload);
    }
    fragment_resetBuffer(buffer);
+
+   return TRUE;
 }
 
 void fragment_assignAction(FragmentQueueEntry_t* buffer, FragmentAction action) {
@@ -490,8 +496,8 @@ bool fragment_completeRX(FragmentQueueEntry_t* buffer, FragmentState state) {
 
    received = 0;
    for ( i = 0; i < buffer->number; i++ )
-      if ( state <= buffer->other.list[i].state ) {
-         received += buffer->other.list[i].fragment_size;
+      if ( state <= buffer->other.rxlist[i].state ) {
+         received += buffer->other.rxlist[i].fragment_size;
       }
 
    return received == buffer->datagram_size;
@@ -546,10 +552,10 @@ owerror_t fragment_startSend(FragmentQueueEntry_t* buffer) {
    buffer->datagram_tag  = fragment_getNewTag();
    buffer->datagram_size = msg->length;
 
-   buffer->other.data.actual_sent       = 0;
-   buffer->other.data.size              = (max_fragment - FRAGMENT_FRAG1_HL) & 0xF8;
-   buffer->other.data.fragn             = FALSE; // first fragment is FRAG1
-   buffer->other.data.max_fragment_size = (max_fragment - FRAGMENT_FRAGN_HL) & 0xF8;
+   buffer->other.txdata.actual_sent       = 0;
+   buffer->other.txdata.size              = (max_fragment - FRAGMENT_FRAG1_HL) & 0xF8;
+   buffer->other.txdata.fragn             = FALSE; // first fragment is FRAG1
+   buffer->other.txdata.max_fragment_size = (max_fragment - FRAGMENT_FRAGN_HL) & 0xF8;
 
    // Start sending the different frames
    fragment_tryToSend(buffer);
@@ -565,7 +571,7 @@ void fragment_tryToSend(FragmentQueueEntry_t* buffer) {
    uint16_t          actual_sent;
    uint8_t           actual_frag_size;
 
-   actual_sent = buffer->other.data.actual_sent;
+   actual_sent = buffer->other.txdata.actual_sent;
    // check if message has been sent
    if ( actual_sent == buffer->datagram_size ) {
       fragment_finishSend(buffer, E_SUCCESS);
@@ -573,14 +579,14 @@ void fragment_tryToSend(FragmentQueueEntry_t* buffer) {
    }
 
    // generate fragment
-   actual_frag_size = buffer->other.data.size;
+   actual_frag_size = buffer->other.txdata.size;
    pkt              = buffer->msg;
    pkt->payload     = &(pkt->packet[FRAGMENT_DATA_INIT - actual_frag_size]);
    memcpy(pkt->payload,
           buffer->payload + actual_sent,
           actual_frag_size * sizeof(uint8_t));
    pkt->length      = actual_frag_size;
-   if ( buffer->other.data.fragn ) { // offset
+   if ( buffer->other.txdata.fragn ) { // offset
       packetfunctions_reserveHeaderSize(pkt, sizeof(uint8_t));
       SET_OFFSET(pkt, actual_sent>>3);
    }
@@ -588,22 +594,22 @@ void fragment_tryToSend(FragmentQueueEntry_t* buffer) {
    SET_TAG(pkt, buffer->datagram_tag);
    packetfunctions_reserveHeaderSize(pkt, 2 * sizeof(uint8_t));
    SET_SIZE(pkt, buffer->datagram_size);
-   if ( buffer->other.data.fragn ) {
+   if ( buffer->other.txdata.fragn ) {
       pkt->payload[0] |= (IPHC_DISPATCH_FRAGN << IPHC_FRAGMENT);
    } else {
       pkt->payload[0] |= (IPHC_DISPATCH_FRAG1 << IPHC_FRAGMENT);
-      buffer->other.data.fragn = TRUE; // after FRAG1, next are FRAGN
+      buffer->other.txdata.fragn = TRUE; // after FRAG1, next are FRAGN
    }
 
    // update data for next fragment
    actual_sent      = actual_sent + actual_frag_size;
-   actual_frag_size = buffer->other.data.max_fragment_size;
+   actual_frag_size = buffer->other.txdata.max_fragment_size;
    // last fragment?
    if ( actual_frag_size > buffer->datagram_size - actual_sent ) {
       actual_frag_size = buffer->datagram_size - actual_sent;
    }
-   buffer->other.data.actual_sent = actual_sent;
-   buffer->other.data.size        = actual_frag_size;
+   buffer->other.txdata.actual_sent = actual_sent;
+   buffer->other.txdata.size        = actual_frag_size;
 
    // try to send fragment
    if ( sixtop_send(pkt) == E_FAIL ) {
@@ -733,15 +739,15 @@ FragmentQueueEntry_t* fragment_searchBuffer(OpenQueueEntry_t* msg, bool in) {
          buffer->datagram_size = size;
          buffer->datagram_tag  = tag;
          size = size / MIN_PAYLOAD + 1;
-         buffer->other.list = (FragmentOffsetEntry_t*)openmemory_getMemory(size * sizeof(FragmentOffsetEntry_t));
-         if ( buffer->other.list == NULL ) {
+         buffer->other.rxlist = (FragmentOffsetEntry_t*)openmemory_getMemory(size * sizeof(FragmentOffsetEntry_t));
+         if ( buffer->other.rxlist == NULL ) {
             buffer->in_use = FRAGMENT_NONE;
             ENABLE_INTERRUPTS();
             return NULL;
          }
          for ( i = 0; i < size; i++ ) {
-            buffer->other.list[i].state = FRAGMENT_NONE;
-            buffer->other.list[i].fragment = NULL;
+            buffer->other.rxlist[i].state = FRAGMENT_NONE;
+            buffer->other.rxlist[i].fragment = NULL;
          }
       }
       memcpy(&(buffer->dst), dst, sizeof(open_addr_t));
@@ -793,7 +799,7 @@ void fragment_resetBuffer(FragmentQueueEntry_t* buffer) {
    buffer->datagram_size = 0;
    buffer->number        = 0;
    if ( buffer->in_use >= FRAGMENT_RX ) {
-      openmemory_freeMemory((uint8_t*)buffer->other.list);
+      openmemory_freeMemory((uint8_t*)buffer->other.rxlist);
    }
 
    buffer->in_use = FRAGMENT_NONE;
@@ -808,11 +814,11 @@ OpenQueueEntry_t* fragment_restartBuffer(FragmentQueueEntry_t* buffer) {
 
    fragment_disableTimer(buffer);
    for ( i = 0; i < buffer->number; i++ ) {
-      if ( buffer->other.list[i].fragment ) {
-         openmemory_freeMemory(buffer->other.list[i].fragment);
-         buffer->other.list[i].fragment = NULL;
+      if ( buffer->other.rxlist[i].fragment ) {
+         openmemory_freeMemory(buffer->other.rxlist[i].fragment);
+         buffer->other.rxlist[i].fragment = NULL;
       }
-      buffer->other.list[i].state = FRAGMENT_NONE;
+      buffer->other.rxlist[i].state = FRAGMENT_NONE;
    }
    buffer->number = 0;
    if ( buffer->payload ) {
@@ -867,11 +873,11 @@ void fragment_timeout_timer_cb(opentimers_id_t id) {
 	 buffer = &(fragmentqueue_vars.queue[i]);
 	 // only incoming messages use timers
          for ( j = 0; j < buffer->number; j++ ) {
-            if ( buffer->other.list[j].fragment ) {
-               openmemory_freeMemory(buffer->other.list[j].fragment);
-               buffer->other.list[j].fragment = NULL;
+            if ( buffer->other.rxlist[j].fragment ) {
+               openmemory_freeMemory(buffer->other.rxlist[j].fragment);
+               buffer->other.rxlist[j].fragment = NULL;
 	    }
-            buffer->other.list[j].state = FRAGMENT_FINISHED;
+            buffer->other.rxlist[j].state = FRAGMENT_FINISHED;
 	 }
 	 // if assembling
 	 if ( buffer->payload ) {
@@ -965,11 +971,11 @@ void fragment_cancel(FragmentQueueEntry_t* buffer, uint8_t frag) {
    INTERRUPT_DECLARATION();
 
    DISABLE_INTERRUPTS();
-   if ( buffer->other.list[frag].fragment ) {
-      openmemory_freeMemory(buffer->other.list[frag].fragment);
-      buffer->other.list[frag].fragment = NULL;
+   if ( buffer->other.rxlist[frag].fragment ) {
+      openmemory_freeMemory(buffer->other.rxlist[frag].fragment);
+      buffer->other.rxlist[frag].fragment = NULL;
    }
-   buffer->other.list[frag].state = FRAGMENT_FINISHED;
+   buffer->other.rxlist[frag].state = FRAGMENT_FINISHED;
    if ( buffer->action == FRAGMENT_ACTION_TIMEREXPIRED ) {
       ENABLE_INTERRUPTS();
       return;
@@ -1017,11 +1023,11 @@ void fragment_doAssemble(FragmentQueueEntry_t* buffer, FragmentAction action) {
    DISABLE_INTERRUPTS();
    // locate FRAG1 fragment
    for ( i = buffer->number-1; i >= 0 &&
-             buffer->other.list[i].fragment_offset != 0; // FRAGN
+             buffer->other.rxlist[i].fragment_offset != 0; // FRAGN
          i--);
    frag1 = i;
    // determine actual offset and msg size
-   buffer->offset = buffer->other.list[frag1].fragment_size
+   buffer->offset = buffer->other.rxlist[frag1].fragment_size
                   - buffer->msg->length;
    received = buffer->datagram_size - buffer->offset;
 
@@ -1044,7 +1050,7 @@ void fragment_doAssemble(FragmentQueueEntry_t* buffer, FragmentAction action) {
    memcpy(buffer->payload, buffer->msg->payload, buffer->msg->length);
 
    // update data
-   buffer->other.list[frag1].state = FRAGMENT_FINISHED;
+   buffer->other.rxlist[frag1].state = FRAGMENT_FINISHED;
    buffer->msg->length = received;
    if ( action == FRAGMENT_ACTION_FORWARD ) {
       buffer->in_use = FRAGMENT_FW;
@@ -1071,19 +1077,19 @@ void fragment_assemble(FragmentQueueEntry_t* buffer, uint8_t frag) {
 
    // Assemble
    DISABLE_INTERRUPTS();
-   if ( buffer->other.list[frag].state == FRAGMENT_RECEIVED ) {
+   if ( buffer->other.rxlist[frag].state == FRAGMENT_RECEIVED ) {
       memcpy(buffer->payload - buffer->offset
-                             +(buffer->other.list[frag].fragment_offset<<3),
-             buffer->other.list[frag].fragment + FRAGMENT_FRAGN_HL,
-             buffer->other.list[frag].fragment_size);
-      openmemory_freeMemory(buffer->other.list[frag].fragment);
-      buffer->other.list[frag].fragment = NULL;
-      buffer->other.list[frag].state = FRAGMENT_FINISHED;
+                             +(buffer->other.rxlist[frag].fragment_offset<<3),
+             buffer->other.rxlist[frag].fragment + FRAGMENT_FRAGN_HL,
+             buffer->other.rxlist[frag].fragment_size);
+      openmemory_freeMemory(buffer->other.rxlist[frag].fragment);
+      buffer->other.rxlist[frag].fragment = NULL;
+      buffer->other.rxlist[frag].state = FRAGMENT_FINISHED;
    }
 
    if ( fragment_completeRX(buffer, FRAGMENT_FINISHED) ) {
       if ( buffer->in_use == FRAGMENT_FW ) {
-         openmemory_freeMemory((uint8_t*)buffer->other.list);
+         openmemory_freeMemory((uint8_t*)buffer->other.rxlist);
          buffer->in_use = FRAGMENT_TX;
          ENABLE_INTERRUPTS();
          fragment_startSend(buffer);
@@ -1115,7 +1121,7 @@ void fragment_doOpenbridge(FragmentQueueEntry_t* buffer) {
    msg = buffer->msg;
    // locate FRAG1 fragment
    for ( i = buffer->number-1; i >= 0 &&
-             buffer->other.list[i].fragment_offset != 0; // FRAGN
+             buffer->other.rxlist[i].fragment_offset != 0; // FRAGN
          i--);
    frag1 = i;
 
@@ -1123,7 +1129,7 @@ void fragment_doOpenbridge(FragmentQueueEntry_t* buffer) {
    msg->length  += FRAGMENT_FRAG1_HL;
    msg->payload -= FRAGMENT_FRAG1_HL;
    msg->payload[0] |= (IPHC_DISPATCH_FRAG1 << IPHC_FRAGMENT);
-   buffer->other.list[frag1].state = FRAGMENT_FINISHED;
+   buffer->other.rxlist[frag1].state = FRAGMENT_FINISHED;
 
    buffer->action = FRAGMENT_ACTION_OPENBRIDGE;
    received = buffer->number;
@@ -1156,17 +1162,17 @@ void fragment_openbridge(FragmentQueueEntry_t* buffer, uint8_t frag) {
    msg = buffer->msg;
    bridge = FALSE;
    DISABLE_INTERRUPTS();
-   if ( buffer->other.list[frag].state == FRAGMENT_RECEIVED ) {
-      length = buffer->other.list[frag].fragment_size + FRAGMENT_FRAGN_HL;
+   if ( buffer->other.rxlist[frag].state == FRAGMENT_RECEIVED ) {
+      length = buffer->other.rxlist[frag].fragment_size + FRAGMENT_FRAGN_HL;
       // rebuild message
-      payload = buffer->other.list[frag].fragment;
+      payload = buffer->other.rxlist[frag].fragment;
       payload[0] |= (IPHC_DISPATCH_FRAGN << IPHC_FRAGMENT);
       // prepend previous hop
       payload -= LENGTH_ADDR64b;
       memcpy(payload,msg->l2_nextORpreviousHop.addr_64b,LENGTH_ADDR64b);
 
-      buffer->other.list[frag].fragment = NULL;
-      buffer->other.list[frag].state = FRAGMENT_FINISHED;
+      buffer->other.rxlist[frag].fragment = NULL;
+      buffer->other.rxlist[frag].state = FRAGMENT_FINISHED;
       bridge = TRUE;
    }
    finished = fragment_completeRX(buffer, FRAGMENT_FINISHED);
@@ -1206,8 +1212,16 @@ uint8_t fragment_askL2HeaderSize(OpenQueueEntry_t* msg) {
    uint8_t hsize;
 
    // Begin
-//   hsize = askAddressSize(idmanager_getMyID(ADDR_64B));
-   hsize = 8;
+   hsize = 0;
+   hsize += TERMINATIONIE_LEN;
+   /// SECURITY_HEADER
+   if ( msg->l2_securityLevel != IEEE154_ASH_SLF_TYPE_NOSEC ) {
+      hsize += msg->l2_keyIdMode != IEEE154_ASH_KEYIDMODE_IMPLICIT ? 1 : 0;
+      hsize += msg->l2_keyIdMode == IEEE154_ASH_KEYIDMODE_EXPLICIT_16 ? 2 : 0;
+      hsize += msg->l2_keyIdMode == IEEE154_ASH_KEYIDMODE_EXPLICIT_16 ? 8 : 0;
+   }
+
+   hsize += 8; //idmanager_getMyID(ADDR_64B)
    if (packetfunctions_isBroadcastMulticast(&(msg->l2_nextORpreviousHop)))
       hsize += 2; //broadcast address is always 16-bit
    else
@@ -1222,10 +1236,9 @@ uint8_t fragment_askL2HeaderSize(OpenQueueEntry_t* msg) {
                hsize += 8;
       }
 
-//   hsize += askAddressSize(idmanager_getMyID(ADDR_PANID));
-   hsize += 2;
+   hsize += 2; //idmanager_getMyID(ADDR_PANID);
    hsize += 1; //dsn
    hsize += 2; //fcf
 
-   return hsize + IEEE802154_SECURITY_TAG_LEN;
+   return hsize;
 }

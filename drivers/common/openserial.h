@@ -52,7 +52,7 @@ enum {
 #define SERFRAME_MOTE2PC_SNIFFED_PACKET          ((uint8_t)'P')
 
 #ifndef DO_NOT_USE_FRAGMENTATION
-#define SERFRAME_MOTE2PC_BRIDGE             ((uint8_t)'B')
+#define SERFRAME_MOTE2PC_BRIDGE                  ((uint8_t)'B')
 #endif
 
 // frames sent PC->mote

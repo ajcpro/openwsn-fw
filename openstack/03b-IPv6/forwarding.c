@@ -354,7 +354,15 @@ void forwarding_receive(
                          (errorparameter_t)0,
                          (errorparameter_t)0
                );           
+#ifdef DO_NOT_USE_FRAGMENTATION
                openqueue_freePacketBuffer(msg);
+#else
+               if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
+                  fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
+               } else {
+                  openqueue_freePacketBuffer(msg);
+               }
+#endif
                return;
            }
        }
@@ -364,7 +372,15 @@ void forwarding_receive(
           // after change the creator to COMPONENT_FORWARDING,
           // there is no space for high priority packet, drop this message
           // by free the buffer.
+#ifdef DO_NOT_USE_FRAGMENTATION
           openqueue_freePacketBuffer(msg);
+#else
+          if ( (buffer = fragment_searchBufferFromMsg(msg)) != NULL ) {
+             fragment_assignAction(buffer, FRAGMENT_ACTION_CANCEL);
+          } else {
+             openqueue_freePacketBuffer(msg);
+          }
+#endif
           return;
         }
 

@@ -47,12 +47,17 @@ static const uint8_t infoStackName[] = "OpenWSN ";
 #define FRAME_DATA_PLOAD  (FRAME_DATA_SPI_L+FRAME_DATA_DATA)
 #define FRAME_DATA_NODATA (FRAME_DATA_SPI_L+FRAME_DATA_CRC+FRAME_DATA_LQI)
 #define FRAME_DATA_TOTAL  (FRAME_DATA_DATA+FRAME_DATA_NODATA)
+#define FRAME_DATA_TAIL   (FRAME_DATA_CRC+FRAME_DATA_LQI)
 
 // total memory reserved for messages
 // Every message uses FRAME_DATA_TOTAL (130B).
 // 10 messages = 10 * 130 + 10 + 1 = 1311B
 #ifndef DO_NOT_USE_FRAGMENTATION
+#ifdef ARCH_TOTAL_OPENMEMORY
+#define TOTAL_DYNAMIC_MEMORY ARCH_TOTAL_OPENMEMORY
+#else
 #define TOTAL_DYNAMIC_MEMORY 2621 // 20 frames
+#endif
 #endif
 
 #define MAXNUMNEIGHBORS  10

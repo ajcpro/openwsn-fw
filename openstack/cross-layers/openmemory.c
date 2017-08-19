@@ -176,6 +176,7 @@ uint8_t* openmemory_increaseMemory(uint8_t* address, uint16_t size)
    if ( old_segments == new_segments ) {
       return address;
    }
+
    if ( openmemory_vars.used - old_segments + new_segments > FRAME_DATA_BLOCKS ) {
       return NULL; // do not search for non available segment
    }
@@ -193,6 +194,10 @@ uint8_t* openmemory_increaseMemory(uint8_t* address, uint16_t size)
    }
 
    // There is no adjacent space to allocate it in contiguous form
+   if ( openmemory_vars.used + new_segments > FRAME_DATA_BLOCKS ) {
+      return NULL; // do not search for non available segment
+   }
+
    new = openmemory_getMemory(size);
    if ( new != NULL ) {
       uint16_t nsize; // bytes to copy minus 1
@@ -293,6 +298,8 @@ bool openmemory_sameMemoryArea(uint8_t* addr1, uint8_t* addr2)
  *                memory area.
  *
  * \returns The allocated size from address to the end of reservation
+ * \returns 0    When memory does not belong to a previously-allocated
+ *               memory area
  */
 uint16_t openmemory_sizeof(uint8_t* address)
 {
@@ -307,6 +314,37 @@ uint16_t openmemory_sizeof(uint8_t* address)
    return last - address + 1;
 }
 
+/**
+ * \brief Move data to the end of the memory area
+ *
+ * \param address A pointer to an address included in a previsouly-allocated
+ *                memory area.
+ * \param size    The amount of bytes to move
+ * \param tail    Space reserved at the end of memory area
+ *
+ * \returns A pointer to the new start of data, if successful.
+ * \returns NULL when memory does not belong to a previously-allocated
+ *               memory area or it does not cover the indicated size
+ *               and tail
+ */
+uint8_t* openmemory_moveToEnd(uint8_t* address, uint16_t size, uint16_t tail)
+{
+   uint8_t* first;
+   uint8_t* last;
+   uint8_t* new;
+
+
+   if ( ! openmemory_segmentAddr(address, &first, &last) ) {
+      return NULL;
+   }
+
+   new = last - (size + tail) + 1;
+   if ( new < first ) {
+      return NULL;
+   }
+   memmove(new, address, size);
+   return new;
+}
 //=========================== private =========================================
 
 /**

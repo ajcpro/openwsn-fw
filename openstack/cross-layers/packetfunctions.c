@@ -273,8 +273,12 @@ void packetfunctions_writeAddress(OpenQueueEntry_t* msg, open_addr_t* address, b
    }
  
    for (i=0;i<address_length;i++) {
+#ifdef DO_NOT_USE_FRAGMENTATION
       msg->payload      -= sizeof(uint8_t);
       msg->length       += sizeof(uint8_t);
+#else
+      packetfunctions_reserveHeaderSize(msg, sizeof(uint8_t)); 
+#endif
       if (littleEndian) {
          *((uint8_t*)(msg->payload)) = address->addr_128b[i];
       } else {
